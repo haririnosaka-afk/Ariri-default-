@@ -24,15 +24,20 @@ export async function POST(req:NextRequest){
  const duration=Number(body.duration);
  const ratio=String(body.ratio||"16:9");
  const resolution=String(body.resolution||"720p");
+ const outputFormat=String(body.outputFormat||"mp4");
+ const referenceMode=String(body.omniReferenceTaskType||"auto");
+ const watermark=!!body.watermark;
  const urls=Array.isArray(body.imageUrls)?body.imageUrls.filter((value:any)=>typeof value==="string"&&/^https?:\/\//i.test(value)):[];
  if(!prompt)return NextResponse.json({error:"Prompt wajib diisi."},{status:400});
- if(!Number.isInteger(duration)||duration<MODEL.minDuration||duration>MODEL.maxDuration)return NextResponse.json({error:"Seedance 2.5 mendukung durasi 4–30 detik."},{status:400});
+ if(!Number.isInteger(duration)||!(duration===-1||(duration>=MODEL.minDuration&&duration<=MODEL.maxDuration)))return NextResponse.json({error:"Seedance 2.5 mendukung durasi 4–30 detik atau Auto (-1)."},{"status":400});
  if(urls.length>MODEL.maxImages)return NextResponse.json({error:"Seedance 2.5 maksimal 30 foto referensi."},{status:400});
  if(!["16:9","4:3","1:1","3:4","9:16","21:9","adaptive"].includes(ratio))return NextResponse.json({error:"Rasio tidak valid."},{status:400});
  if(!MODEL.resolutions.includes(resolution))return NextResponse.json({error:"Resolusi harus 480p, 720p, atau 1080p."},{status:400});
+ if(!["mp4","mov"].includes(outputFormat))return NextResponse.json({error:"Format keluaran harus MP4 atau MOV."},{status:400});
+ if(!["auto","reference"].includes(referenceMode))return NextResponse.json({error:"Mode referensi tidak valid."},{status:400});
 
  const content:any[]=[{type:"text",text:prompt},...urls.map((url:string)=>({type:"image_url",role:"reference_image",image_url:{url}}))];
- const payload={model:MODEL.id,content,duration,generate_audio:!!body.generateAudio,output_format:"mp4",ratio,resolution,watermark:false};
+ const payload={model:MODEL.id,content,duration,generate_audio:!!body.generateAudio,omni_reference_task_type:referenceMode,output_format:outputFormat,ratio,resolution,watermark};
  try{
   const response=await fetch("https://api.relayrouter.ai/api/v3/contents/generations/tasks",{
    method:"POST",
