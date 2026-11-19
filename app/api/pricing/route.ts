@@ -37,7 +37,12 @@ export async function GET(){
   for(const id of IDS){
    if(rates[id]?.usdPerSecond==null){
     const perSecond=fallbackPerFiveSeconds[id]/5;
-    rates[id]={usdPerSecond:perSecond,byResolution:Object.fromEntries(RESOLUTIONS.map(res=>[res,perSecond])),source:"public RelayRouter.ai indexed estimate (5-second reference)",estimated:true} as any;
+    // Resolution scales the estimate by rendered pixel count relative to 720p.
+    // Public listing exposes a per-call reference, not an official resolution tariff.
+    const pixelScale:Record<string,number>={"480p":(854*480)/(1280*720),"720p":1,"1080p":(1920*1080)/(1280*720),"4k":(3840*2160)/(1280*720)};
+    const byResolution:Record<string,number|null>={};
+    for(const res of RESOLUTIONS)byResolution[res]=perSecond*pixelScale[res];
+    rates[id]={usdPerSecond:perSecond,byResolution,source:"RelayRouter.ai public call-price reference scaled by resolution pixels",estimated:true} as any;
    }
   }
   return NextResponse.json({configured:true,connected:true,httpStatus:r.status,rates,source:"RelayRouter catalog with public-price fallback estimate",updatedAt:new Date().toISOString()});
