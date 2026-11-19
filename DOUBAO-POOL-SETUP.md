@@ -11,7 +11,7 @@ Buka Vercel Project Settings → Environment Variables, lalu tambahkan DOUBAO_AR
       { "label": "Ark account 2", "apiKey": "ANOTHER_ARK_API_KEY", "baseUrl": "https://ark.cn-beijing.volces.com/api/v3" }
     ]
 
-Redeploy setelah menyimpan. Buka /doubao untuk melihat status pool.
+Tambahkan juga DOUBAO_POOL_ACCESS_CODE dengan kode rahasia pilihanmu. Kode ini melindungi endpoint generator dari penggunaan publik. Redeploy setelah menyimpan. Buka /doubao untuk melihat status pool dan masukkan kode akses tersebut sebelum generate.
 
 ## API routes
 
