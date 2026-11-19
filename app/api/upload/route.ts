@@ -17,7 +17,7 @@ export async function POST(req:NextRequest){
   const file=form.get("file");
   if(!(file instanceof File))return NextResponse.json({error:"File gambar tidak ditemukan."},{status:400});
   if(!file.type.startsWith("image/"))return NextResponse.json({error:"Format harus gambar."},{status:400});
-  if(file.size>10*1024*1024)return NextResponse.json({error:"Ukuran maksimal 10 MB."},{status:413});
+  if(file.size>4*1024*1024)return NextResponse.json({error:"Foto setelah kompresi harus di bawah 4 MB agar melewati batas request Vercel."},{status:413});
   const upstream=new FormData();
   upstream.append("file",file,file.name);
   // RelayRouter documents this dedicated image-host URL for Seedance reference images.
