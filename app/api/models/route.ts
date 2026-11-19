@@ -2,82 +2,28 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-const BASE = "https://api.relayrouter.ai";
-
-function collectModels(payload: any): any[] {
-  if (Array.isArray(payload)) return payload;
-  for (const key of ["data", "models", "result"]) {
-    const value = payload?.[key];
-    if (Array.isArray(value)) return value;
-    if (value && typeof value === "object") {
-      for (const nested of ["data", "models", "items"]) {
-        if (Array.isArray(value[nested])) return value[nested];
-      }
-    }
-  }
-  return [];
-}
-
-function modelLabel(id: string) {
-  const normalized = id.toLowerCase();
-  if (normalized.includes("2-5") || normalized.includes("2.5")) return "Seedance 2.5";
-  if (normalized.includes("2-0") || normalized.includes("2.0")) {
-    if (normalized.includes("fast")) return "Seedance 2.0 Fast";
-    if (normalized.includes("mini")) return "Seedance 2.0 Mini";
-    return "Seedance 2.0";
-  }
-  if (normalized.includes("1-5") || normalized.includes("1.5")) return "Seedance 1.5";
-  return id;
-}
-
-function resolutionsFor(id: string, item: any) {
-  const explicit = item?.resolutions || item?.supported_resolutions || item?.capabilities?.resolutions;
-  if (Array.isArray(explicit) && explicit.length) return explicit.map(String);
-  const m = id.match(/(?:^|[-_])(480p|720p|1080p|4k)(?:$|[-_])/i);
-  if (m) return [m[1].toLowerCase()];
-  return ["480p", "720p", "1080p"];
-}
+// These are the exact model IDs documented by the configured Dola Pool API.
+// Provider selection is handled inside Dola Pool, not in the KAZAMA UI.
+const MODELS = [
+  { id: "seedance-2.0-fast", name: "Seedance 2.0 Fast · Dola", minDuration: 5, maxDuration: 15, durations: [5, 10, 15], resolutions: ["720p", "1080p", "2k", "4k"], maxImages: 10, route: "Dola account pool" },
+  { id: "seedance-2.5", name: "Seedance 2.5 · Dola", minDuration: 5, maxDuration: 30, durations: [5, 10, 30], resolutions: ["720p", "1080p", "2k", "4k"], maxImages: 10, route: "Dola account pool" },
+  { id: "doubao-seedance-2.0-mini", name: "Seedance 2.0 Mini · Doubao", minDuration: 4, maxDuration: 15, durations: [4, 5, 6, 8, 10, 12, 15], resolutions: ["720p"], maxImages: 30, route: "Doubao account pool" },
+  { id: "doubao-seedance-2.0-fast", name: "Seedance 2.0 Fast · Doubao", minDuration: 4, maxDuration: 15, durations: [4, 5, 6, 8, 10, 12, 15], resolutions: ["720p"], maxImages: 30, route: "Doubao account pool" },
+  { id: "doubao-seedance-2.0", name: "Seedance 2.0 · Doubao", minDuration: 4, maxDuration: 15, durations: [4, 5, 6, 8, 10, 12, 15], resolutions: ["720p"], maxImages: 30, route: "Doubao account pool" },
+  { id: "doubao-seedance-2.5", name: "Seedance 2.5 · Doubao", minDuration: 4, maxDuration: 30, durations: [4, 5, 6, 8, 10, 12, 15, 20, 25, 30], resolutions: ["720p"], maxImages: 30, route: "Doubao account pool" }
+];
 
 export async function GET() {
-  const key = process.env.RELAYROUTER_API_KEY;
-  if (!key) return NextResponse.json({ configured: false, connected: false, models: [], error: "RELAYROUTER_API_KEY belum dipasang." }, { status: 503 });
-
+  const base = process.env.DOLA_POOL_BASE_URL?.replace(/\/+$/, "");
+  const key = process.env.DOLA_POOL_API_KEY;
+  if (!base || !key) {
+    return NextResponse.json({ configured: false, connected: false, models: MODELS, count: MODELS.length, error: "DOLA_POOL_BASE_URL dan DOLA_POOL_API_KEY belum dipasang di Vercel." });
+  }
   try {
-    const response = await fetch(BASE + "/v1/models", {
-      headers: { Authorization: "Bearer " + key, Accept: "application/json" },
-      cache: "no-store",
-      signal: AbortSignal.timeout(15000)
-    });
-    const raw = await response.text();
-    let payload: any;
-    try { payload = raw ? JSON.parse(raw) : {}; } catch { payload = {}; }
-    if (!response.ok) {
-      return NextResponse.json({ configured: true, connected: false, models: [], error: "RelayRouter /v1/models HTTP " + response.status, details: payload?.error || raw.slice(0, 300) }, { status: 502 });
-    }
-
-    const all = collectModels(payload);
-    const models = all.map((item: any) => {
-      const id = typeof item === "string" ? item : String(item?.id || item?.name || "");
-      return {
-        id,
-        name: modelLabel(id),
-        resolutions: resolutionsFor(id, item),
-        rawName: item?.name || id,
-        // Preserve pricing/capability metadata only when RelayRouter itself returns it.
-        pricing: item?.pricing ?? item?.price ?? item?.rates ?? null,
-        capabilities: item?.capabilities ?? null
-      };
-    }).filter((item: any) => item.id && /seedance/i.test(item.id + " " + item.rawName));
-
-    return NextResponse.json({
-      configured: true,
-      connected: true,
-      models,
-      count: models.length,
-      source: "RelayRouter GET /v1/models",
-      note: "Model dan metadata hanya berasal dari katalog RelayRouter. Harga ditampilkan hanya jika katalog RelayRouter mengirim metadata tarif."
-    });
+    const response = await fetch(base + "/health", { cache: "no-store", signal: AbortSignal.timeout(10000) });
+    const health = await response.json().catch(() => ({}));
+    return NextResponse.json({ configured: true, connected: response.ok && health?.ok !== false, models: MODELS, count: MODELS.length, pool: health?.pool || null, available: health?.available ?? response.ok, source: "Dola Pool /health + documented model catalog" });
   } catch (error) {
-    return NextResponse.json({ configured: true, connected: false, models: [], error: error instanceof Error ? error.message : String(error) }, { status: 502 });
+    return NextResponse.json({ configured: true, connected: false, models: MODELS, count: MODELS.length, error: error instanceof Error ? error.message : String(error) });
   }
 }
