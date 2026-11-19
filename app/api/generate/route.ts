@@ -19,7 +19,8 @@ export async function POST(req:NextRequest){
  if(!["16:9","4:3","1:1","3:4","9:16","21:9","adaptive"].includes(ratio))return NextResponse.json({error:"Rasio tidak valid."},{status:400});
  if(!spec.resolutions.includes(resolution))return NextResponse.json({error:"Resolusi "+resolution+" tidak didukung oleh "+spec.name+"."},{status:400});
  const content:any[]=[{type:"text",text:prompt},...urls.map((url:string)=>({type:"image_url",role:"reference_image",image_url:{url}}))];
- const payload={model,content,duration,generate_audio:!!b.generateAudio,omni_reference_task_type:"auto",output_format:"mp4",ratio,resolution,watermark:false};
+ const payload:any={model,content,duration,generate_audio:!!b.generateAudio,output_format:"mp4",ratio,resolution,watermark:false};
+  if(model==="doubao-seedance-2-5-260628")payload.omni_reference_task_type="auto";
  try{
   const r=await fetch("https://api.relayrouter.ai/api/v3/contents/generations/tasks",{method:"POST",headers:{Authorization:"Bearer "+key,"Content-Type":"application/json"},body:JSON.stringify(payload)});
   const d=await r.json();if(!r.ok)return NextResponse.json({error:d?.message||d?.error?.message||"RelayRouter menolak permintaan.",details:d},{status:r.status});
