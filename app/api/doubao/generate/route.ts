@@ -36,8 +36,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true, id: String(taskId), status: data?.status || "queued", provider: "doubao-ark", providerSlot: slotIndex, model, accountLabel: slot.label });
       }
       lastError = String(data?.message || data?.error?.message || data?.error || raw.slice(0, 350) || "Ark API menolak request.");
-      if (response.status !== 429 && response.status < 500) return NextResponse.json({ error: "Doubao Ark (" + response.status + "): " + lastError, providerSlot: slotIndex }, { status: response.status });
-    } catch (error) { lastError = error instanceof Error ? error.message : String(error); }
+      if (response.status !== 429) return NextResponse.json({ error: "Doubao Ark (" + response.status + "): " + lastError, providerSlot: slotIndex }, { status: response.status >= 500 ? 502 : response.status });
+    } catch (error) { return NextResponse.json({ error: "Koneksi terputus setelah request dikirim. Status penerimaan belum pasti; tidak mencoba akun lain agar tidak membuat tagihan ganda. " + (error instanceof Error ? error.message : String(error)) }, { status: 502 }); }
   }
   return NextResponse.json({ error: "Semua akun dalam pool sedang sibuk atau gagal. " + lastError }, { status: 503 });
 }
