@@ -3,10 +3,25 @@ export const dynamic="force-dynamic";
 const IDS=["doubao-seedance-2-5-260628"];
 const RESOLUTIONS=["480p","720p","1080p"];
 function readRate(p:any):number|null{
- if(!p||typeof p!=="object")return null;
- const raw=p.usd_per_second??p.price_per_second??p.video_price_per_second??p.video_sec_price??p.video_sec_micro;
- if(typeof raw==="number"&&Number.isFinite(raw))return p.video_sec_micro===raw?raw/1_000_000:raw;
- if(typeof raw==="string"&&raw.trim()&&Number.isFinite(Number(raw)))return Number(raw);
+ if(p===null||p===undefined)return null;
+ if(typeof p==="number"&&Number.isFinite(p))return p;
+ if(typeof p==="string"&&p.trim()&&Number.isFinite(Number(p)))return Number(p);
+ if(typeof p!=="object")return null;
+ const candidates=[
+  ["usd_per_second",p.usd_per_second],["usdPerSecond",p.usdPerSecond],
+  ["price_per_second",p.price_per_second],["pricePerSecond",p.pricePerSecond],
+  ["video_price_per_second",p.video_price_per_second],["videoPricePerSecond",p.videoPricePerSecond],
+  ["per_second",p.per_second],["perSecond",p.perSecond],
+  ["video_sec_price",p.video_sec_price],["video_sec_micro",p.video_sec_micro]
+ ] as const;
+ for(const [key,raw] of candidates){
+  if(typeof raw==="number"&&Number.isFinite(raw))return key==="video_sec_micro"?raw/1_000_000:raw;
+  if(typeof raw==="string"&&raw.trim()&&Number.isFinite(Number(raw)))return key==="video_sec_micro"?Number(raw)/1_000_000:Number(raw);
+ }
+ for(const key of ["video","video_generation","videoGeneration","pricing","rates"]){
+  const nested=readRate(p[key]);
+  if(nested!==null)return nested;
+ }
  return null;
 }
 export async function GET(){
