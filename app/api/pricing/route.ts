@@ -25,6 +25,21 @@ export async function GET(){
    for(const res of RESOLUTIONS)byResolution[res]=readRate(pricing?.[res]||pricing?.resolutions?.[res]||pricing);
    rates[id]={usdPerSecond:readRate(pricing),byResolution,source:m?"RelayRouter model catalog":"Model not returned by API catalog"};
   }
-  return NextResponse.json({configured:true,connected:true,httpStatus:r.status,rates,source:"RelayRouter /v1/models",updatedAt:new Date().toISOString()});
+  // Fallback estimates based on publicly indexed RelayRouter.ai Seedance call prices.
+  // The listing is not an authenticated billing quote; divide its 5-second reference
+  // amount by 5 so the UI can estimate proportionally by requested video duration.
+  const fallbackPerFiveSeconds:Record<string,number>={
+   "doubao-seedance-2-0-260128":0.0013,
+   "doubao-seedance-2-0-fast-260128":0.00097,
+   "doubao-seedance-2-0-mini-260615":0.00097,
+   "doubao-seedance-2-5-260628":0.0013
+  };
+  for(const id of IDS){
+   if(rates[id]?.usdPerSecond==null){
+    const perSecond=fallbackPerFiveSeconds[id]/5;
+    rates[id]={usdPerSecond:perSecond,byResolution:Object.fromEntries(RESOLUTIONS.map(res=>[res,perSecond])),source:"public RelayRouter.ai indexed estimate (5-second reference)",estimated:true} as any;
+   }
+  }
+  return NextResponse.json({configured:true,connected:true,httpStatus:r.status,rates,source:"RelayRouter catalog with public-price fallback estimate",updatedAt:new Date().toISOString()});
  }catch{return NextResponse.json({configured:true,connected:false,rates:{},message:"Gagal menghubungi katalog RelayRouter."});}
 }
