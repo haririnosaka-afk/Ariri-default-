@@ -2,31 +2,46 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-// KAZAMA estimate rule requested by the owner:
-// 1 second of video = 1 RelayRouter API call.
-// The per-call reference rate used here is USD 0.0013.
-// The selected resolution is explicitly looked up; the current per-call
-// reference rate is flat across the supported 2.5 resolutions.
 const MODEL_ID = "doubao-seedance-2-5-260628";
 const USD_PER_CALL = 0.0013;
 const USD_TO_IDR = 18295;
 const IDR_PER_CALL = USD_PER_CALL * USD_TO_IDR;
 
 export async function GET() {
-  const configured = Boolean(process.env.RELAYROUTER_API_KEY);
-  const byResolution = {
-    "480p": IDR_PER_CALL,
-    "720p": IDR_PER_CALL,
-    "1080p": IDR_PER_CALL
-  };
+  const key = process.env.RELAYROUTER_API_KEY;
+  const configured = Boolean(key);
+  let connected = false;
+  let connectionError: string | undefined;
+
+  if (key) {
+    try {
+      const response = await fetch("https://api.relayrouter.ai/v1/models", {
+        headers: { Authorization: "Bearer " + key, Accept: "application/json" },
+        cache: "no-store",
+        signal: AbortSignal.timeout(10000)
+      });
+      connected = response.ok;
+      if (!response.ok) {
+        const body = await response.text();
+        connectionError = "RelayRouter model-list check returned HTTP " + response.status + (body ? ": " + body.slice(0, 180) : "");
+      }
+    } catch (error) {
+      connectionError = error instanceof Error ? error.message : String(error);
+    }
+  }
 
   return NextResponse.json({
     configured,
-    connected: configured,
+    connected,
+    connectionError,
     rates: {
       [MODEL_ID]: {
         idrPerSecond: IDR_PER_CALL,
-        byResolution,
+        byResolution: {
+          "480p": IDR_PER_CALL,
+          "720p": IDR_PER_CALL,
+          "1080p": IDR_PER_CALL
+        },
         usdPerCall: USD_PER_CALL,
         source: "KAZAMA per-call reference rate; 1 second = 1 call",
         verified: false
@@ -37,6 +52,6 @@ export async function GET() {
     pricingMode: "per_call_times_duration",
     usdToIdr: USD_TO_IDR,
     maxAutoDuration: 30,
-    note: "Estimasi KAZAMA = tarif per panggilan USD 0.0013 × 1 panggilan per detik × durasi × kurs referensi Rp18.295/USD. Tarif per panggilan pada patokan ini sama untuk 480p, 720p, dan 1080p; resolusi tetap dipilih dan divalidasi saat generate. Ini estimasi, bukan saldo atau tagihan aktual RelayRouter."
+    note: "Estimasi KAZAMA = USD 0.0013 per panggilan × 1 panggilan per detik × durasi × kurs referensi Rp18.295/USD. Patokan per panggilan ini sama untuk 480p, 720p, dan 1080p; resolusi tetap dipilih dan dikirim ke API. Ini estimasi, bukan tagihan aktual RelayRouter."
   });
 }
