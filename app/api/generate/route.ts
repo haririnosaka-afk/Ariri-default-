@@ -32,7 +32,7 @@ export async function POST(req:NextRequest){
  if(!MODEL.resolutions.includes(resolution))return NextResponse.json({error:"Resolusi harus 480p, 720p, atau 1080p."},{status:400});
 
  const content:any[]=[{type:"text",text:prompt},...urls.map((url:string)=>({type:"image_url",role:"reference_image",image_url:{url}}))];
- const payload={model:MODEL.id,content,duration,generate_audio:!!body.generateAudio,omni_reference_task_type:"reference",output_format:"mp4",ratio,resolution,watermark:false};
+ const payload={model:MODEL.id,content,duration,generate_audio:!!body.generateAudio,output_format:"mp4",ratio,resolution,watermark:false};
  try{
   const response=await fetch("https://api.relayrouter.ai/api/v3/contents/generations/tasks",{
    method:"POST",
