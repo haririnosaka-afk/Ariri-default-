@@ -7,7 +7,7 @@ const allowedModels = new Set([
   "doubao-seedance-2.0", "doubao-seedance-2.5"
 ]);
 const modelLimits: Record<string, { min: number; max: number; images: number; durations?: number[] }> = {
-  "seedance-2.0-fast": { min: 5, max: 15, images: 10, durations: [5, 10, 15] },
+  "seedance-2.0-fast": { min: 5, max: 10, images: 10, durations: [5, 10] },
   "seedance-2.5": { min: 5, max: 30, images: 10, durations: [5, 10, 30] },
   "doubao-seedance-2.0-mini": { min: 4, max: 15, images: 30 },
   "doubao-seedance-2.0-fast": { min: 4, max: 15, images: 30 },
