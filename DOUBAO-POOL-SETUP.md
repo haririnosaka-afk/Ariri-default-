@@ -21,7 +21,7 @@ Tambahkan juga DOUBAO_POOL_ACCESS_CODE dengan kode rahasia pilihanmu. Kode ini m
 
 ## Scheduler
 
-Request dibagi round-robin dalam satu instance server yang berjalan. Jika menerima HTTP 429 atau 5xx, scheduler mencoba key berikutnya. Scheduler tidak mengulang 4xx dan tidak mengulang request yang hasil jaringannya tidak jelas setelah kemungkinan diterima, untuk menghindari tagihan ganda. Ini scheduler best-effort, bukan antrean terdistribusi yang persisten.
+Request dibagi round-robin dalam satu instance server yang berjalan. Jika menerima HTTP 429 (rate limit), scheduler mencoba key berikutnya. Respons 5xx dan timeout tidak diulang otomatis karena request mungkin sudah diterima dan dapat menimbulkan tagihan ganda. Ini scheduler best-effort, bukan antrean terdistribusi yang persisten.
 
 ## Endpoint resmi
 
