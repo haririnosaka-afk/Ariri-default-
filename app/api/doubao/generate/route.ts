@@ -4,6 +4,9 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 async function parse(response: Response) { const raw = await response.text(); try { return { data: raw ? JSON.parse(raw) : {}, raw }; } catch { return { data: null as any, raw }; } }
 export async function POST(req: NextRequest) {
+  const expectedCode = process.env.DOUBAO_POOL_ACCESS_CODE;
+  if (!expectedCode) return NextResponse.json({ error: "DOUBAO_POOL_ACCESS_CODE belum diatur di Vercel." }, { status: 503 });
+  if (req.headers.get("x-kazama-pool-code") !== expectedCode) return NextResponse.json({ error: "Kode akses pool salah." }, { status: 401 });
   const slots = getDoubaoSlots();
   if (!slots.length) return NextResponse.json({ error: "Pool Doubao belum dikonfigurasi. Tambahkan DOUBAO_ARK_API_KEYS di Vercel." }, { status: 503 });
   let body: any; try { body = await req.json(); } catch { return NextResponse.json({ error: "Body JSON tidak valid." }, { status: 400 }); }
