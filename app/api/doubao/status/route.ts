@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDoubaoSlots } from "@/lib/doubao-pool";
 export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
+  const expectedCode = process.env.DOUBAO_POOL_ACCESS_CODE;
+  if (!expectedCode) return NextResponse.json({ error: "DOUBAO_POOL_ACCESS_CODE belum diatur di Vercel." }, { status: 503 });
+  if (req.headers.get("x-kazama-pool-code") !== expectedCode) return NextResponse.json({ error: "Kode akses pool salah." }, { status: 401 });
   const slots = getDoubaoSlots(), id = req.nextUrl.searchParams.get("id"), slotIndex = Number(req.nextUrl.searchParams.get("slot"));
   if (!id) return NextResponse.json({ error: "Task ID diperlukan." }, { status: 400 });
   if (!Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex >= slots.length) return NextResponse.json({ error: "Slot akun tidak valid atau pool berubah." }, { status: 400 });
