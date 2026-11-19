@@ -1,0 +1,34 @@
+# KAZAMA AI — Doubao Account Pool Setup
+
+Pool ini menggunakan API Key Volcengine Ark yang memang dimiliki atau diizinkan untuk digunakan. Pool ini tidak memakai password Doubao konsumen, Cookie browser, atau token sesi privat.
+
+## Environment variable Vercel
+
+Buka Vercel Project Settings → Environment Variables, lalu tambahkan DOUBAO_ARK_API_KEYS sebagai JSON array:
+
+    [
+      { "label": "Ark account 1", "apiKey": "YOUR_ARK_API_KEY", "baseUrl": "https://ark.cn-beijing.volces.com/api/v3" },
+      { "label": "Ark account 2", "apiKey": "ANOTHER_ARK_API_KEY", "baseUrl": "https://ark.cn-beijing.volces.com/api/v3" }
+    ]
+
+Redeploy setelah menyimpan. Buka /doubao untuk melihat status pool.
+
+## API routes
+
+- GET /api/doubao/health — status pool tanpa membocorkan API Key.
+- POST /api/doubao/generate — membuat tugas video dan mengembalikan task ID serta slot provider.
+- GET /api/doubao/status?id=TASK_ID&slot=0 — memeriksa tugas memakai key slot yang sama.
+
+## Scheduler
+
+Request dibagi round-robin dalam satu instance server yang berjalan. Jika menerima HTTP 429 atau 5xx, scheduler mencoba key berikutnya. Scheduler tidak mengulang 4xx dan tidak mengulang request yang hasil jaringannya tidak jelas setelah kemungkinan diterima, untuk menghindari tagihan ganda. Ini scheduler best-effort, bukan antrean terdistribusi yang persisten.
+
+## Endpoint resmi
+
+Base URL: https://ark.cn-beijing.volces.com/api/v3
+Create task: POST /contents/generations/tasks
+Poll task: GET /contents/generations/tasks/{task_id}
+
+Model ID:
+- Seedance 2.5: doubao-seedance-2-5-260628
+- Seedance 2.5 Flash: doubao-seedance-2-5-flash-261115
