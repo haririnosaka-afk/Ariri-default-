@@ -1,0 +1,3 @@
+import { NextRequest,NextResponse } from "next/server";
+export const dynamic="force-dynamic";
+export async function GET(req:NextRequest){ const key=process.env.RELAYROUTER_API_KEY; if(!key)return NextResponse.json({error:"API key belum dipasang."},{status:503}); const id=req.nextUrl.searchParams.get("id"); if(!id)return NextResponse.json({error:"Task ID diperlukan."},{status:400}); try { const r=await fetch(`https://api.relayrouter.ai/v1/videos/${encodeURIComponent(id)}`,{headers:{Authorization:`Bearer ${key}`},cache:"no-store"}); const data=await r.json(); return NextResponse.json(data,{status:r.status}); } catch { return NextResponse.json({error:"Gagal memeriksa status."},{status:502}); } }
