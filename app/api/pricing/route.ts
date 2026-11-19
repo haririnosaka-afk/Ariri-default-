@@ -1,34 +1,26 @@
 import {NextResponse} from "next/server";
-export const dynamic="force-dynamic";
-
-// Perhitungan KAZAMA: 1 detik durasi = 1 unit pemanggilan.
-// Acuan harga unit model doubao-seedance-2-5-260628: US$0.0013 per call
-// dari pemantau pihak ketiga RelayRouter; belum merupakan tarif resmi terverifikasi.
-// Kurs tampilan: Rp18.295 per USD.
-const MODEL_ID="doubao-seedance-2-5-260628";
-const USD_PER_SECOND_CALL=0.0013;
-const USD_TO_IDR=18295;
-const IDR_PER_SECOND_CALL=USD_PER_SECOND_CALL*USD_TO_IDR;
-const RESOLUTIONS=["480p","720p","1080p"];
-
-export async function GET(){
- const key=process.env.RELAYROUTER_API_KEY;
- const byResolution=Object.fromEntries(RESOLUTIONS.map(res=>[res,IDR_PER_SECOND_CALL]));
- return NextResponse.json({
-  configured:!!key,
-  connected:!!key,
-  rates:{
-   [MODEL_ID]:{
-    idrPerSecond:IDR_PER_SECOND_CALL,
-    byResolution,
-    source:"Manual: 1 second = 1 call unit; reference $0.0013/call, unverified",
-    verified:false
-   }
-  },
-  currency:"IDR",
-  unit:"1 detik = 1 unit pemanggilan",
-  exchangeRate:{from:"USD",to:"IDR",rate:USD_TO_IDR,source:"Manual display conversion rate"},
-  pricingMode:"manual_per_second_call",
-  note:"Estimasi KAZAMA dihitung sendiri: jumlah detik × harga satu unit pemanggilan. Tagihan aktual RelayRouter dapat berbeda."
- });
+export const dynamic = "force-dynamic";
+const MODEL_ID = "doubao-seedance-2-5-260628";
+const RESOLUTIONS = ["480p", "720p", "1080p"] as const;
+function readRate(name: string): number | null {
+  const raw = process.env[name];
+  if (!raw) return null;
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+export async function GET() {
+  const key = process.env.RELAYROUTER_API_KEY;
+  const envNames: Record<(typeof RESOLUTIONS)[number], string> = {
+    "480p": "RELAYROUTER_SEEDANCE_480P_IDR_PER_SECOND",
+    "720p": "RELAYROUTER_SEEDANCE_720P_IDR_PER_SECOND",
+    "1080p": "RELAYROUTER_SEEDANCE_1080P_IDR_PER_SECOND",
+  };
+  const byResolution = Object.fromEntries(RESOLUTIONS.map((resolution) => [resolution, readRate(envNames[resolution])]));
+  const availableRates = Object.values(byResolution).filter((value): value is number => typeof value === "number");
+  return NextResponse.json({
+    configured: Boolean(key), connected: Boolean(key),
+    rates: { [MODEL_ID]: { idrPerSecond: null, byResolution, source: availableRates.length ? "RelayRouter console rate configured in Vercel environment" : "No verified per-second rate configured", verified: availableRates.length > 0 } },
+    currency: "IDR", unit: "Rupiah per second", pricingMode: "verified_console_rate_only",
+    note: availableRates.length ? "Estimasi = tarif per detik dari konsol RelayRouter × durasi. Tagihan akhir mengikuti pemakaian aktual." : "Tarif belum tersedia. KAZAMA tidak memakai angka perkiraan atau tarif dari penyedia lain."
+  });
 }
