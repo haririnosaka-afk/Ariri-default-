@@ -1,18 +1,33 @@
 import {NextRequest,NextResponse} from "next/server";
 export const dynamic="force-dynamic";
+
 function findCost(x:any):{cost:number;currency:string}|null{
  if(!x||typeof x!=="object")return null;
- for(const k of ["cost_usd","total_cost_usd","charged_amount","actual_cost","cost","price"]){const v=x[k];if(typeof v==="number"&&Number.isFinite(v))return {cost:v,currency:k.includes("usd")?"USD":String(x.currency||"USD")};if(typeof v==="string"&&v.trim()&&Number.isFinite(Number(v)))return {cost:Number(v),currency:k.includes("usd")?"USD":String(x.currency||"USD")};}
- for(const k of ["data","result","usage","billing","task_result"])if(x[k]){const c=findCost(x[k]);if(c)return c;}
+ for(const k of ["amount_usd","cost_usd","total_cost_usd","charged_amount","actual_cost","cost","price"]){
+  const v=x[k];
+  if(typeof v==="number"&&Number.isFinite(v))return {cost:v,currency:k.includes("usd")||k==="amount_usd"?"USD":String(x.currency||"USD")};
+  if(typeof v==="string"&&v.trim()&&Number.isFinite(Number(v)))return {cost:Number(v),currency:k.includes("usd")||k==="amount_usd"?"USD":String(x.currency||"USD")};
+ }
+ for(const k of ["data","result","usage","billing","task_result","content","output"])if(x[k]){
+  const c=findCost(x[k]);if(c)return c;
+ }
  return null;
 }
 function findVideo(x:any):string|null{
  if(!x||typeof x!=="object")return null;
  if(typeof x.video_url==="string")return x.video_url;
- if(typeof x.url==="string"&&/\.mp4|video/i.test(x.url))return x.url;
+ if(typeof x.url==="string"&&/\.mp4(?:$|\?)|\.mov(?:$|\?)/i.test(x.url))return x.url;
  if(Array.isArray(x))for(const item of x){const v=findVideo(item);if(v)return v;}
- for(const k of ["data","result","output","content","videos","video","task_result"])if(x[k]){const v=findVideo(x[k]);if(v)return v;}
+ for(const k of ["data","result","output","content","videos","video","task_result"])if(x[k]){
+  const v=findVideo(x[k]);if(v)return v;
+ }
  return null;
+}
+function errorMessage(x:any):string|null{
+ if(!x)return null;
+ if(typeof x==="string")return x;
+ if(typeof x==="object")return x.message||x.msg||JSON.stringify(x);
+ return String(x);
 }
 export async function GET(req:NextRequest){
  const key=process.env.RELAYROUTER_API_KEY;
@@ -20,11 +35,12 @@ export async function GET(req:NextRequest){
  const id=req.nextUrl.searchParams.get("id");
  if(!id)return NextResponse.json({error:"Task ID diperlukan."},{status:400});
  try{
-  const r=await fetch("https://api.relayrouter.ai/api/v3/contents/generations/tasks/"+encodeURIComponent(id),{headers:{Authorization:"Bearer "+key},cache:"no-store"});
+  const r=await fetch("https://api.relayrouter.ai/api/v3/contents/generations/tasks/"+encodeURIComponent(id),{headers:{Authorization:"Bearer "+key,Accept:"application/json"},cache:"no-store"});
   const d=await r.json();
   if(!r.ok)return NextResponse.json({error:d?.message||d?.error?.message||"Gagal mengambil status.",details:d},{status:r.status});
   const root=d.data||d.result||d;
   const billed=findCost(root);
-  return NextResponse.json({id,status:root.status||root.state||"processing",videoUrl:findVideo(root),cost:billed?.cost,currency:billed?.currency,error:root.error||null,raw:d});
+  const status=String(root.status||root.state||"processing").toLowerCase();
+  return NextResponse.json({id,status,videoUrl:findVideo(root),cost:billed?.cost,currency:billed?.currency,error:errorMessage(root.error),raw:d});
  }catch{return NextResponse.json({error:"Gagal memeriksa status tugas."},{status:502});}
 }
