@@ -5,10 +5,11 @@ export function getDoubaoSlots(): DoubaoSlot[] {
   try {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.map((item: any, index: number) => typeof item === "string"
-      ? { label: "Doubao account " + (index + 1), apiKey: item.trim(), baseUrl: "https://ark.cn-beijing.volces.com/api/v3" }
-      : { label: String(item?.label || ("Doubao account " + (index + 1))), apiKey: String(item?.apiKey || item?.api_key || "").trim(), baseUrl: String(item?.baseUrl || item?.base_url || "https://ark.cn-beijing.volces.com/api/v3").replace(/\\/$/, "") }
-    ).filter((slot: DoubaoSlot) => slot.apiKey && /^https:\/\//i.test(slot.baseUrl));
+    return parsed.map((item: any, index: number) => {
+      if (typeof item === "string") return { label: "Doubao account " + (index + 1), apiKey: item.trim(), baseUrl: "https://ark.cn-beijing.volces.com/api/v3" };
+      const baseUrl = String(item?.baseUrl || item?.base_url || "https://ark.cn-beijing.volces.com/api/v3");
+      return { label: String(item?.label || ("Doubao account " + (index + 1))), apiKey: String(item?.apiKey || item?.api_key || "").trim(), baseUrl: baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl };
+    }).filter((slot: DoubaoSlot) => slot.apiKey && slot.baseUrl.startsWith("https://"));
   } catch { return []; }
 }
 let cursor = 0;
