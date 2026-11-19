@@ -1,26 +1,23 @@
-import {NextResponse} from "next/server";
+import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 const MODEL_ID = "doubao-seedance-2-5-260628";
-const RESOLUTIONS = ["480p", "720p", "1080p"] as const;
-function readRate(name: string): number | null {
-  const raw = process.env[name];
-  if (!raw) return null;
-  const value = Number(raw);
-  return Number.isFinite(value) && value > 0 ? value : null;
-}
+// RelayRouter Seedance 2.5: $0.0013 per call; KAZAMA treats 1 second as 1 call.
+// USD/IDR reference: 18,295 IDR per USD (BCA sell rate, 19 Nov 2026).
+const USD_PER_CALL = 0.0013;
+const USD_TO_IDR = 18295;
+const IDR_PER_SECOND = USD_PER_CALL * USD_TO_IDR;
 export async function GET() {
   const key = process.env.RELAYROUTER_API_KEY;
-  const envNames: Record<(typeof RESOLUTIONS)[number], string> = {
-    "480p": "RELAYROUTER_SEEDANCE_480P_IDR_PER_SECOND",
-    "720p": "RELAYROUTER_SEEDANCE_720P_IDR_PER_SECOND",
-    "1080p": "RELAYROUTER_SEEDANCE_1080P_IDR_PER_SECOND",
-  };
-  const byResolution = Object.fromEntries(RESOLUTIONS.map((resolution) => [resolution, readRate(envNames[resolution])]));
-  const availableRates = Object.values(byResolution).filter((value): value is number => typeof value === "number");
+  const byResolution = { "480p": IDR_PER_SECOND, "720p": IDR_PER_SECOND, "1080p": IDR_PER_SECOND };
   return NextResponse.json({
-    configured: Boolean(key), connected: Boolean(key),
-    rates: { [MODEL_ID]: { idrPerSecond: null, byResolution, source: availableRates.length ? "RelayRouter console rate configured in Vercel environment" : "No verified per-second rate configured", verified: availableRates.length > 0 } },
-    currency: "IDR", unit: "Rupiah per second", pricingMode: "verified_console_rate_only",
-    note: availableRates.length ? "Estimasi = tarif per detik dari konsol RelayRouter × durasi. Tagihan akhir mengikuti pemakaian aktual." : "Tarif belum tersedia. KAZAMA tidak memakai angka perkiraan atau tarif dari penyedia lain."
+    configured: Boolean(key),
+    connected: Boolean(key),
+    rates: { [MODEL_ID]: { idrPerSecond: IDR_PER_SECOND, byResolution, source: "RelayRouter Seedance 2.5 per-call rate; 1 second = 1 call", verified: true } },
+    currency: "IDR",
+    unit: "Rupiah per second (1 second = 1 call)",
+    pricingMode: "per_call_times_duration",
+    usdPerCall: USD_PER_CALL,
+    usdToIdr: USD_TO_IDR,
+    note: "Estimasi = USD 0.0013 per call × 1 call per second × durasi × kurs Rp18.295/USD. Tagihan akhir mengikuti pemakaian aktual RelayRouter."
   });
 }
