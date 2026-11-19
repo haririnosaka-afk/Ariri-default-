@@ -14,7 +14,7 @@ const USD_PER_SECOND: Record<string, number> = {
 const USD_PER_SECOND_WITH_REFERENCE_VIDEO: Record<string, number> = {
   "480p": 0.0941,
   "720p": 0.2115,
-  "1080p": 0.5118
+  "1080p": 0.5205
 };
 
 export async function GET() {
