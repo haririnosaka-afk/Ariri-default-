@@ -1,6 +1,6 @@
 import {NextRequest,NextResponse} from "next/server";
 export const dynamic="force-dynamic";
-function findVideo(x:any):string|null{
+function findCost(x:any):{cost:number;currency:string}|null{\n if(!x||typeof x!=="object")return null;\n for(const k of ["cost_usd","total_cost_usd","charged_amount","actual_cost","cost","price"]){const v=x[k];if(typeof v==="number"&&Number.isFinite(v))return {cost:v,currency:k.includes("usd")?"USD":String(x.currency||"USD")};if(typeof v==="string"&&v.trim()&&Number.isFinite(Number(v)))return {cost:Number(v),currency:k.includes("usd")?"USD":String(x.currency||"USD")};}\n for(const k of ["data","result","usage","billing","task_result"])if(x[k]){const c=findCost(x[k]);if(c)return c;}\n return null;\n}\nfunction findVideo(x:any):string|null{
  if(!x||typeof x!=="object")return null;
  if(typeof x.video_url==="string")return x.video_url;
  if(typeof x.url==="string"&&/\.mp4|video/i.test(x.url))return x.url;
@@ -18,6 +18,6 @@ export async function GET(req:NextRequest){
   const d=await r.json();
   if(!r.ok)return NextResponse.json({error:d?.message||d?.error?.message||"Gagal mengambil status.",details:d},{status:r.status});
   const root=d.data||d.result||d;
-  return NextResponse.json({id,status:root.status||root.state||"processing",videoUrl:findVideo(root),error:root.error||null,raw:d});
+  const billed=findCost(root);\n  return NextResponse.json({id,status:root.status||root.state||"processing",videoUrl:findVideo(root),cost:billed?.cost,currency:billed?.currency,error:root.error||null,raw:d});
  }catch{return NextResponse.json({error:"Gagal memeriksa status tugas."},{status:502});}
 }
