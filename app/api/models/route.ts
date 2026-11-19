@@ -30,7 +30,9 @@ function modelLabel(id: string) {
   return id;
 }
 
-function resolutionsFor(id: string) {
+function resolutionsFor(id: string, item: any) {
+  const explicit = item?.resolutions || item?.supported_resolutions || item?.capabilities?.resolutions;
+  if (Array.isArray(explicit) && explicit.length) return explicit.map(String);
   const m = id.match(/(?:^|[-_])(480p|720p|1080p|4k)(?:$|[-_])/i);
   if (m) return [m[1].toLowerCase()];
   return ["480p", "720p", "1080p"];
@@ -56,7 +58,15 @@ export async function GET() {
     const all = collectModels(payload);
     const models = all.map((item: any) => {
       const id = typeof item === "string" ? item : String(item?.id || item?.name || "");
-      return { id, name: modelLabel(id), resolutions: resolutionsFor(id), rawName: item?.name || id };
+      return {
+        id,
+        name: modelLabel(id),
+        resolutions: resolutionsFor(id, item),
+        rawName: item?.name || id,
+        // Preserve pricing/capability metadata only when RelayRouter itself returns it.
+        pricing: item?.pricing ?? item?.price ?? item?.rates ?? null,
+        capabilities: item?.capabilities ?? null
+      };
     }).filter((item: any) => item.id && /seedance/i.test(item.id + " " + item.rawName));
 
     return NextResponse.json({
@@ -65,7 +75,7 @@ export async function GET() {
       models,
       count: models.length,
       source: "RelayRouter GET /v1/models",
-      note: "Daftar model mengikuti model yang benar-benar dikembalikan API key ini. Batas durasi, foto, dan harga harus mengikuti spesifikasi dan tarif model pada akun RelayRouter."
+      note: "Model dan metadata hanya berasal dari katalog RelayRouter. Harga ditampilkan hanya jika katalog RelayRouter mengirim metadata tarif."
     });
   } catch (error) {
     return NextResponse.json({ configured: true, connected: false, models: [], error: error instanceof Error ? error.message : String(error) }, { status: 502 });
