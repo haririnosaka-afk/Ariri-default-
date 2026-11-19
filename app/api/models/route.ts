@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 // These are the exact model IDs documented by the configured Dola Pool API.
 // Provider selection is handled inside Dola Pool, not in the KAZAMA UI.
 const MODELS = [
-  { id: "seedance-2.0-fast", name: "Seedance 2.0 Fast · Dola", minDuration: 5, maxDuration: 15, durations: [5, 10, 15], resolutions: ["720p", "1080p", "2k", "4k"], maxImages: 10, route: "Dola account pool" },
+  { id: "seedance-2.0-fast", name: "Seedance 2.0 Fast · Dola", minDuration: 5, maxDuration: 10, durations: [5, 10], resolutions: ["720p", "1080p", "2k", "4k"], maxImages: 10, route: "Dola account pool" },
   { id: "seedance-2.5", name: "Seedance 2.5 · Dola", minDuration: 5, maxDuration: 30, durations: [5, 10, 30], resolutions: ["720p", "1080p", "2k", "4k"], maxImages: 10, route: "Dola account pool" },
   { id: "doubao-seedance-2.0-mini", name: "Seedance 2.0 Mini · Doubao", minDuration: 4, maxDuration: 15, durations: [4, 5, 6, 8, 10, 12, 15], resolutions: ["720p"], maxImages: 30, route: "Doubao account pool" },
   { id: "doubao-seedance-2.0-fast", name: "Seedance 2.0 Fast · Doubao", minDuration: 4, maxDuration: 15, durations: [4, 5, 6, 8, 10, 12, 15], resolutions: ["720p"], maxImages: 30, route: "Doubao account pool" },
