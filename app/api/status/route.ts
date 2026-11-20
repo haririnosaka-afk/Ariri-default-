@@ -24,7 +24,7 @@ function collectDiagnostics(value: any): Record<string, unknown> {
     "duration", "video_duration", "output_duration", "requested_duration",
     "task_type", "omni_reference_task_type", "mode", "draft", "draft_task",
     "usage", "billing", "cost", "price", "credits", "tokens",
-    "model", "model_name", "status", "task_status"
+    "model", "model_name", "service_tier", "status", "task_status"
   ];
   const out: Record<string, unknown> = {};
   const visit = (node: any, depth: number) => {
