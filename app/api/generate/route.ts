@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: "Data permintaan tidak valid." }, { status: 400 }); }
 
-  const model = String(body.model || "doubao-seedance-2-5-260628");
+  const model = String(body.model || "doubao-seedance-2-5-flash-261115");
   const config = MODEL_CONFIG[model];
   const prompt = String(body.prompt || "").trim();
   const duration = Number(body.duration);
