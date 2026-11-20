@@ -25,7 +25,8 @@ export async function POST(req: NextRequest) {
   const model = String(body.model || "doubao-seedance-2-5-flash-261115");
   const config = MODEL_CONFIG[model];
   const prompt = String(body.prompt || "").trim();
-  const duration = Number(body.duration);
+  const autoDuration = body.autoDuration === true;
+  const duration = autoDuration ? -1 : Number(body.duration);
   const ratio = String(body.ratio || "16:9");
   const resolution = String(body.resolution || body.size || "720p");
   const imageUrls = Array.isArray(body.imageUrls)
@@ -34,15 +35,16 @@ export async function POST(req: NextRequest) {
 
   if (!config) return NextResponse.json({ error: "Model Seedance yang dipilih tidak tersedia." }, { status: 400 });
   if (!prompt) return NextResponse.json({ error: "Prompt wajib diisi." }, { status: 400 });
-  if (!Number.isInteger(duration) || duration < 4 || duration > 30) return NextResponse.json({ error: config.label + " mendukung durasi 4–30 detik." }, { status: 400 });
+  if (autoDuration && model !== "doubao-seedance-2-5-260628") {
+    return NextResponse.json({ error: "Mode durasi otomatis (-1) didokumentasikan untuk Seedance 2.5 reguler, bukan Flash." }, { status: 400 });
+  }
+  if (!autoDuration && (!Number.isInteger(duration) || duration < 4 || duration > 30)) return NextResponse.json({ error: config.label + " mendukung durasi 4–30 detik." }, { status: 400 });
   if (!["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "adaptive"].includes(ratio)) return NextResponse.json({ error: "Rasio video tidak valid." }, { status: 400 });
   if (!config.resolutions.includes(resolution)) return NextResponse.json({ error: config.label + " mendukung resolusi " + config.resolutions.join(", ") + "." }, { status: 400 });
   if (imageUrls.length > 9) return NextResponse.json({ error: "Maksimal 9 foto referensi untuk permintaan ini." }, { status: 400 });
 
   const content: any[] = [{ type: "text", text: prompt }];
-  for (const url of imageUrls) {
-    content.push({ type: "image_url", role: "reference_image", image_url: { url } });
-  }
+  for (const url of imageUrls) content.push({ type: "image_url", role: "reference_image", image_url: { url } });
 
   const payload = {
     model,
@@ -52,7 +54,7 @@ export async function POST(req: NextRequest) {
     omni_reference_task_type: "auto",
     output_format: "mp4",
     ratio,
-    size: resolution,
+    resolution,
     watermark: false
   };
 
@@ -83,6 +85,7 @@ export async function POST(req: NextRequest) {
       status: root?.status || data?.status || "queued",
       model: config.label,
       duration,
+      durationMode: autoDuration ? "auto" : "fixed",
       resolution,
       ratio
     });
