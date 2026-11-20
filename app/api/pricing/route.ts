@@ -1,28 +1,18 @@
 import { NextResponse } from "next/server";
+
 export const dynamic = "force-dynamic";
 
-// Dola Pool's public client API does not expose a guaranteed per-second price.
-// Never reuse the old RelayRouter tariff for Dola/Doubao account-pool jobs.
+// No fixed per-second price is hardcoded: actual billing depends on the
+// active RelayRouter model, resolution, duration and reference inputs.
 export async function GET() {
-  const base = process.env.DOLA_POOL_BASE_URL?.replace(/\/+$/, "");
-  const key = process.env.DOLA_POOL_API_KEY;
-  let connected = false;
-  let pool: any = null;
-  if (base && key) {
-    try {
-      const response = await fetch(base + "/health", { cache: "no-store", signal: AbortSignal.timeout(8000) });
-      const data = await response.json().catch(() => ({}));
-      connected = response.ok && data?.ok !== false;
-      pool = data?.pool || null;
-    } catch {}
-  }
+  const configured = Boolean(process.env.RELAYROUTER_API_KEY);
   return NextResponse.json({
-    configured: Boolean(base && key),
-    connected,
-    rates: {},
+    configured,
+    connected: configured,
+    provider: "RelayRouter",
+    pricingMode: "provider_actual_usage",
     hasRates: false,
-    pool,
-    pricingMode: "pool_account_quota",
-    note: "Tarif Rupiah per detik tidak tersedia dari API pool. Biaya/kuota bergantung pada akun Dola atau Doubao yang dipilih oleh pool; KAZAMA tidak menebak harga."
+    rates: {},
+    note: "Biaya mengikuti pemakaian aktual RelayRouter. Tarif per detik belum diisi karena harus dicocokkan dengan harga model yang aktif."
   });
 }
