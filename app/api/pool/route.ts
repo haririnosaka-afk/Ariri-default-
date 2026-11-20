@@ -48,6 +48,7 @@ export async function GET() {
     return NextResponse.json({
       configured: true,
       connected: data.ok === true,
+      dashboardUrl: base,
       available: data.available === true,
       counts,
       message: data.available === true
