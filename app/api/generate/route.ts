@@ -4,11 +4,11 @@ export const maxDuration = 60;
 
 const API_URL = "https://api.relayrouter.ai/api/v3/contents/generations/tasks";
 const MODEL_CONFIG: Record<string, { label: string; resolutions: string[] }> = {
-  "doubao-seedance-2-5-260628:floor": {
+  "doubao-seedance-2-5-260628": {
     label: "Seedance 2.5",
     resolutions: ["480p", "720p", "1080p"]
   },
-  "doubao-seedance-2-5-flash-261115:floor": {
+  "doubao-seedance-2-5-flash-261115": {
     label: "Seedance 2.5 Flash",
     resolutions: ["480p", "720p"]
   }
@@ -22,12 +22,12 @@ export async function POST(req: NextRequest) {
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: "Data permintaan tidak valid." }, { status: 400 }); }
 
-  const model = String(body.model || "doubao-seedance-2-5-260628:floor");
+  const model = String(body.model || "doubao-seedance-2-5-260628");
   const config = MODEL_CONFIG[model];
   const prompt = String(body.prompt || "").trim();
   const duration = Number(body.duration);
   const ratio = String(body.ratio || "16:9");
-  const resolution = String(body.resolution || "720p");
+  const resolution = String(body.resolution || body.size || "720p");
   const imageUrls = Array.isArray(body.imageUrls)
     ? body.imageUrls.filter((v: unknown) => typeof v === "string" && /^https:\/\//i.test(v))
     : [];
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     omni_reference_task_type: "auto",
     output_format: "mp4",
     ratio,
-    resolution,
+    size: resolution,
     watermark: false
   };
 
