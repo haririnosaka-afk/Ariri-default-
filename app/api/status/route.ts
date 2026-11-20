@@ -17,6 +17,36 @@ function findVideoUrl(value: any): string | null {
   return null;
 }
 
+// Return only fields useful for comparing requested duration, delivered duration,
+// task mode and provider-reported usage. Never return credentials or raw payloads.
+function collectDiagnostics(value: any): Record<string, unknown> {
+  const keys = [
+    "duration", "video_duration", "output_duration", "requested_duration",
+    "task_type", "omni_reference_task_type", "mode", "draft", "draft_task",
+    "usage", "billing", "cost", "price", "credits", "tokens",
+    "model", "model_name", "status", "task_status"
+  ];
+  const out: Record<string, unknown> = {};
+  const visit = (node: any, depth: number) => {
+    if (!node || typeof node !== "object" || depth > 4) return;
+    for (const [key, val] of Object.entries(node)) {
+      if (keys.includes(key.toLowerCase()) && (typeof val !== "object" || val === null)) out[key] = val;
+      if (["usage", "billing", "cost", "price", "credits", "tokens", "meta", "metadata", "data", "result"].includes(key.toLowerCase()) && val && typeof val === "object") {
+        if (Array.isArray(val)) continue;
+        const safe: Record<string, unknown> = {};
+        for (const [childKey, childVal] of Object.entries(val as Record<string, unknown>)) {
+          if (/duration|usage|bill|cost|price|credit|token|model|task|draft|status|seconds|amount|unit/i.test(childKey) &&
+              (childVal === null || ["string", "number", "boolean"].includes(typeof childVal))) safe[childKey] = childVal;
+        }
+        if (Object.keys(safe).length) out[key] = safe;
+      }
+      if (val && typeof val === "object" && !Array.isArray(val)) visit(val, depth + 1);
+    }
+  };
+  visit(value, 0);
+  return out;
+}
+
 export async function GET(req: NextRequest) {
   const key = process.env.RELAYROUTER_API_KEY;
   if (!key) return NextResponse.json({ error: "RELAYROUTER_API_KEY belum dipasang di Vercel." }, { status: 503 });
@@ -51,7 +81,8 @@ export async function GET(req: NextRequest) {
       error: failed ? String(root?.error?.message || root?.error || root?.message || "Tugas gagal.") : null,
       progress: root?.progress ?? root?.percentage ?? null,
       resolution: root?.resolution || null,
-      duration: root?.duration || null
+      duration: root?.duration ?? root?.video_duration ?? root?.output_duration ?? null,
+      diagnostics: collectDiagnostics(data)
     });
   } catch (error) {
     return NextResponse.json({ error: "Tidak dapat memeriksa tugas di RelayRouter: " + (error instanceof Error ? error.message : String(error)) }, { status: 502 });
