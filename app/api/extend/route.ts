@@ -19,10 +19,12 @@ export async function POST(req: NextRequest) {
   const prompt = String(body.prompt || "").trim();
   const videoUrl = String(body.videoUrl || "");
   const resolution = String(body.resolution || "720p");
+  const duration = Number(body.duration || 10);
   if (!ALLOWED_MODELS.has(model)) return NextResponse.json({ error: "Model Seedance tidak didukung untuk proses lanjutan." }, { status: 400 });
   if (!prompt) return NextResponse.json({ error: "Prompt lanjutan wajib diisi." }, { status: 400 });
   if (!/^https:\/\//i.test(videoUrl)) return NextResponse.json({ error: "URL video referensi tidak valid." }, { status: 400 });
   if (!["480p", "720p", "1080p"].includes(resolution)) return NextResponse.json({ error: "Resolusi tidak valid." }, { status: 400 });
+  if (duration !== 10) return NextResponse.json({ error: "Mode continuation eksperimental saat ini hanya menerima 10 detik per tahap." }, { status: 400 });
 
   // Seedance native continuation: the first 5-second result becomes a
   // reference_video; this request asks the provider for the remaining 25s.
@@ -32,9 +34,9 @@ export async function POST(req: NextRequest) {
       { type: "text", text: prompt + "\nContinue seamlessly from the supplied reference video. Preserve the same subjects, identity, scene, visual style, camera continuity and action. Generate new continuous motion; do not replay or slow down the reference." },
       { type: "video_url", role: "reference_video", video_url: { url: videoUrl } }
     ],
-    duration: 25,
+    duration,
     ratio: "adaptive",
-    size: resolution,
+    resolution,
     output_format: "mp4",
     omni_reference_task_type: "extend",
     watermark: false
@@ -60,7 +62,7 @@ export async function POST(req: NextRequest) {
     const root = data?.data || data?.result || data;
     const id = root?.id || root?.task_id || root?.taskId || data?.id || data?.task_id;
     if (!id) return NextResponse.json({ error: "RelayRouter tidak mengembalikan task ID extend.", details: data }, { status: 502 });
-    return NextResponse.json({ ok: true, id: String(id), status: root?.status || data?.status || "queued", duration: 25, stage: "extension" });
+    return NextResponse.json({ ok: true, id: String(id), status: root?.status || data?.status || "queued", duration, stage: "extension" });
   } catch (error) {
     return NextResponse.json({ error: "Koneksi proses extend gagal: " + (error instanceof Error ? error.message : String(error)) }, { status: 502 });
   }
