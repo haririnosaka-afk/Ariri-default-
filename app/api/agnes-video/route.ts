@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   const seconds = String(body.seconds || "5");
   const ratio = String(body.aspect_ratio || "16:9");
   const images = Array.isArray(body.images) ? body.images.filter((x: unknown) => typeof x === "string" && /^https?:\/\//i.test(x.trim())) : [];
-  const audios = Array.isArray(body.audios) ? body.audios.filter((x: unknown) => typeof x === "string" && /^https?:\\/\\//i.test(x.trim())) : [];
+  const audios = Array.isArray(body.audios) ? body.audios.filter((x: unknown) => typeof x === "string" && /^https?:\/\//i.test(x.trim())) : [];
   const first = String(body.first_frame || "").trim(), last = String(body.last_frame || "").trim();
   if (!prompt) return NextResponse.json({ error: "Prompt wajib diisi." }, { status: 400 });
   if (prompt.length > 7000) return NextResponse.json({ error: "Prompt maksimal 7.000 karakter." }, { status: 400 });
