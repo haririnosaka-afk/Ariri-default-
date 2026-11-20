@@ -2,7 +2,7 @@
 import {useEffect,useState} from "react";
 import {ArrowDownToLine,Check,ChevronDown,Clapperboard,Film,Users,ImagePlus,LoaderCircle,Play,Settings2,Sparkles,UploadCloud,X,Trash2} from "lucide-react";
 type Model={id:string;name:string;minDuration:number;maxDuration:number;durations:number[];resolutions:string[];maxImages:number;route?:string};
-const DEFAULT_MODELS:Model[]=[{id:"doubao-seedance-2-5-260628",name:"Seedance 2.5",minDuration:4,maxDuration:30,durations:[4,5,6,8,10,12,15,20,25,30],resolutions:["480p","720p","1080p"],maxImages:9,route:"RelayRouter"},{id:"doubao-seedance-2-5-flash-261115",name:"Doubao Seedance 2.5 Flash",minDuration:4,maxDuration:30,durations:[4,5,6,8,10,12,15,20,25,30],resolutions:["480p","720p"],maxImages:9,route:"RelayRouter · :floor"}];
+const DEFAULT_MODELS:Model[]=[{id:"doubao-seedance-2-5-flash-261115",name:"Doubao Seedance 2.5 Flash",minDuration:4,maxDuration:30,durations:[4,5,6,8,10,12,15,20,25,30],resolutions:["480p","720p"],maxImages:9,route:"RelayRouter"},{id:"doubao-seedance-2-5-260628",name:"Seedance 2.5",minDuration:4,maxDuration:30,durations:[4,5,6,8,10,12,15,20,25,30],resolutions:["480p","720p","1080p"],maxImages:9,route:"RelayRouter"}];
 type Job={id:string;prompt:string;status:string;videoUrl?:string;created:number;error?:string;duration:number;model?:string;resolution?:string;ratio?:string};
 async function prepareUploadImage(file:File):Promise<File>{
  if(!file.type.startsWith("image/"))throw new Error("File bukan gambar: "+file.name);
