@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 export const maxDuration=60;
 const MODELS:Record<string,{label:string;min:number;max:number;durations:number[];resolutions:string[]}>={
-"seedance-2.0-fast":{label:"Dola Seedance 2.0 Fast",min:5,max:15,durations:[5,10,15],resolutions:["720p"]},
+"seedance-2.0-fast":{label:"Dola Seedance 2.0 Fast",min:5,max:10,durations:[5,10],resolutions:["720p"]},
 "seedance-2.5":{label:"Dola Seedance 2.5",min:5,max:30,durations:[5,10,30],resolutions:["720p","1080p"]},
 "doubao-seedance-2.0-mini":{label:"Doubao Seedance 2.0 Mini",min:4,max:15,durations:[],resolutions:["720p"]},
 "doubao-seedance-2.0-fast":{label:"Doubao Seedance 2.0 Fast",min:4,max:15,durations:[],resolutions:["720p"]},
