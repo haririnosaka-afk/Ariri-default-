@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
-const BASE = (process.env.AGNES_BASE_URL || "https://apihub.agnes-ai.com/v1").replace(/\\/+$/, "");
+const BASE = (process.env.AGNES_BASE_URL || "https://apihub.agnes-ai.com/v1").replace(/\/+$/, "");
 const MODEL = "agnes-video-2.5-flash";
 export async function POST(req: NextRequest) {
   const key = process.env.AGNES_API_KEY;
@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
   const mode = String(body.mode || "text");
   const seconds = String(body.seconds || "5");
   const ratio = String(body.aspect_ratio || "16:9");
-  const images = Array.isArray(body.images) ? body.images.filter((x: unknown) => typeof x === "string" && /^https?:\\/\\//i.test(x.trim())) : [];
+  const images = Array.isArray(body.images) ? body.images.filter((x: unknown) => typeof x === "string" && /^https?:\/\//i.test(x.trim())) : [];
   const audios = Array.isArray(body.audios) ? body.audios.filter((x: unknown) => typeof x === "string" && /^https?:\\/\\//i.test(x.trim())) : [];
   const first = String(body.first_frame || "").trim(), last = String(body.last_frame || "").trim();
   if (!prompt) return NextResponse.json({ error: "Prompt wajib diisi." }, { status: 400 });
