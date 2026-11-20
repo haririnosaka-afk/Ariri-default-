@@ -2,8 +2,17 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-// Verified RelayRouter Seedance 2.5 model from its dedicated async video API.
 const MODELS = [
+  {
+    id: "doubao-seedance-2-5-260628:floor",
+    name: "Seedance 2.5 · Lowest price",
+    minDuration: 4,
+    maxDuration: 30,
+    durations: [4, 5, 6, 8, 10, 12, 15, 20, 25, 30],
+    resolutions: ["480p", "720p", "1080p"],
+    maxImages: 9,
+    route: "RelayRouter · :floor (lowest price)"
+  },
   {
     id: "doubao-seedance-2-5-flash-261115:floor",
     name: "Seedance 2.5 Flash · Lowest price",
