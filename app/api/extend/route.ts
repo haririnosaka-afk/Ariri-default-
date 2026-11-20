@@ -26,8 +26,8 @@ export async function POST(req: NextRequest) {
   if (!["480p", "720p", "1080p"].includes(resolution)) return NextResponse.json({ error: "Resolusi tidak valid." }, { status: 400 });
   if (duration !== 10) return NextResponse.json({ error: "Mode continuation eksperimental saat ini hanya menerima 10 detik per tahap." }, { status: 400 });
 
-  // Seedance native continuation: the first 5-second result becomes a
-  // reference_video; this request asks the provider for the remaining 25s.
+  // Seedance native continuation: pass the previous stage output as a
+  // reference_video and request one additional 10-second segment.
   const payload = {
     model,
     content: [
