@@ -18,7 +18,7 @@ async function prepareUploadImage(file:File):Promise<File>{
   while(blob&&blob.size>3.6*1024*1024&&quality>0.52){quality-=0.08;blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/jpeg",quality));}
   if(!blob)throw new Error("Gagal mengompres foto "+file.name);
   if(blob.size>4*1024*1024)throw new Error("Foto masih terlalu besar setelah dikompres: "+file.name);
-  return new File([blob],file.name.replace(/\\.[^.]+$/,"")+".jpg",{type:"image/jpeg",lastModified:Date.now()});
+  return new File([blob],file.name.replace(/\.[^.]+$/,"")+".jpg",{type:"image/jpeg",lastModified:Date.now()});
  }finally{bitmap.close();}
 }
 
