@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const maxDuration = 60;
 
-const MODEL = "doubao-seedance-2-5-260628:floor";
+const MODEL = "doubao-seedance-2-5-flash-261115:floor";
 const API_URL = "https://api.relayrouter.ai/api/v3/contents/generations/tasks";
 
 export async function POST(req: NextRequest) {
@@ -22,9 +22,9 @@ export async function POST(req: NextRequest) {
     : [];
 
   if (!prompt) return NextResponse.json({ error: "Prompt wajib diisi." }, { status: 400 });
-  if (!Number.isInteger(duration) || duration < 4 || duration > 30) return NextResponse.json({ error: "Seedance 2.5 mendukung durasi 4–30 detik." }, { status: 400 });
+  if (!Number.isInteger(duration) || duration < 4 || duration > 30) return NextResponse.json({ error: "Seedance 2.5 Flash mendukung durasi 4–30 detik." }, { status: 400 });
   if (!["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "adaptive"].includes(ratio)) return NextResponse.json({ error: "Rasio video tidak valid." }, { status: 400 });
-  if (!["480p", "720p", "1080p"].includes(resolution)) return NextResponse.json({ error: "Resolusi harus 480p, 720p, atau 1080p. Seedance 2.5 tidak mendukung 4K melalui endpoint ini." }, { status: 400 });
+  if (!["480p", "720p"].includes(resolution)) return NextResponse.json({ error: "Resolusi harus 480p, 720p, atau 1080p. Seedance 2.5 Flash mendukung hingga 720p." }, { status: 400 });
   if (imageUrls.length > 9) return NextResponse.json({ error: "Maksimal 9 foto referensi untuk permintaan ini." }, { status: 400 });
 
   const content: any[] = [{ type: "text", text: prompt }];
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
       ok: true,
       id: String(id),
       status: root?.status || data?.status || "queued",
-      model: "Seedance 2.5",
+      model: "Seedance 2.5 Flash",
       duration,
       resolution,
       ratio
