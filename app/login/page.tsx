@@ -65,7 +65,7 @@ export default function LoginPage() {
       <label style={{display:"block",fontSize:12,marginBottom:7}}>EMAIL</label>
       <input required type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="nama@email.com" disabled={verifyMode} style={inputStyle}/>
       {!verifyMode&&<><label style={{display:"block",fontSize:12,margin:"16px 0 7px"}}>PASSWORD</label><input required minLength={8} type="password" autoComplete={signup?"new-password":"current-password"} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Minimal 8 karakter" style={inputStyle}/></>}
-      {verifyMode&&<><label style={{display:"block",fontSize:12,margin:"16px 0 7px"}}>KODE VERIFIKASI</label><input required inputMode="numeric" autoComplete="one-time-code" maxLength={8} value={code} onChange={e=>setCode(e.target.value.replace(/\\D/g,""))} placeholder="Masukkan kode dari email" style={inputStyle}/></>}
+      {verifyMode&&<><label style={{display:"block",fontSize:12,margin:"16px 0 7px"}}>KODE VERIFIKASI</label><input required inputMode="numeric" autoComplete="one-time-code" maxLength={8} value={code} onChange={e=>setCode(e.target.value.replace(/\D/g,""))} placeholder="Masukkan kode dari email" style={inputStyle}/></>}
       {error&&<p style={{color:"#ff8291",fontSize:13}}>{error}</p>}{message&&<p style={{color:"#73e1bd",fontSize:13}}>{message}</p>}
       <button disabled={busy} style={buttonStyle}>{verifyMode?<ShieldCheck size={17}/>:signup?<UserPlus size={17}/>:<LogIn size={17}/>} {busy?"Memproses...":verifyMode?"Verifikasi kode":signup?"Daftar akun":"Masuk"}</button>
       {verifyMode?<button type="button" disabled={busy} onClick={resendCode} style={secondaryStyle}>Kirim ulang kode</button>:<>
