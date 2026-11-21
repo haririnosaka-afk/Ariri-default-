@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { supabaseServer } from "@/lib/supabase-server";
 export const dynamic="force-dynamic";
 export const maxDuration=300;
-const BASE=(process.env.PRIVATE_ENGINE_URL||"").replace(/\\/+$/,"")+"/api/v1";
+const BASE=(process.env.PRIVATE_ENGINE_URL||"").replace(/\/+$/,"")+"/api/v1";
 function adminDb(){const url=process.env.NEXT_PUBLIC_SUPABASE_URL;const key=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!url||!key)throw new Error("Database token belum dikonfigurasi.");return createClient(url,key,{auth:{persistSession:false}})}
 async function currentUser(){const s=await supabaseServer();const {data,error}=await s.auth.getUser();if(error||!data.user)throw Object.assign(new Error("Silakan masuk terlebih dahulu."),{status:401});return data.user}
 function isAdmin(email?:string){return !!email&&!!process.env.KAZAMA_ADMIN_EMAIL&&email.toLowerCase()===process.env.KAZAMA_ADMIN_EMAIL.toLowerCase()}
