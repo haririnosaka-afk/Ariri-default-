@@ -19,6 +19,9 @@ create table if not exists public.token_ledger (
   created_at timestamptz not null default now()
 );
 create index if not exists token_ledger_user_created_idx on public.token_ledger(user_id, created_at desc);
+create unique index if not exists token_ledger_reference_kind_unique
+  on public.token_ledger(user_id, reference_id, kind)
+  where reference_id is not null and kind in ('generate','refund');
 
 alter table public.profiles enable row level security;
 alter table public.token_ledger enable row level security;
@@ -46,8 +49,11 @@ returns integer language plpgsql security definer set search_path = public
 as $$
 declare new_balance integer;
 begin
-  if auth.uid() is not null and auth.uid() <> p_user_id and auth.role() <> 'service_role' then
-    raise exception 'forbidden';
+  if auth.role() <> 'service_role' then raise exception 'forbidden'; end if;
+  if p_reference_id is null or length(trim(p_reference_id)) = 0 then raise exception 'reference_required'; end if;
+  if exists(select 1 from public.token_ledger where user_id=p_user_id and reference_id=p_reference_id and kind='generate') then
+    select balance into new_balance from public.profiles where id=p_user_id;
+    return new_balance;
   end if;
   update public.profiles set balance=balance-1, updated_at=now()
   where id=p_user_id and balance>=1 returning balance into new_balance;
@@ -62,9 +68,10 @@ returns integer language plpgsql security definer set search_path = public
 as $$
 declare new_balance integer;
 begin
-  if auth.uid() is not null and auth.uid() <> p_user_id and auth.role() <> 'service_role' then
-    raise exception 'forbidden';
-  end if;
+  if auth.role() <> 'service_role' then raise exception 'forbidden'; end if;
+  if p_reference_id is null or length(trim(p_reference_id)) = 0 then raise exception 'reference_required'; end if;
+  perform 1 from public.profiles where id=p_user_id for update;
+  if not found then raise exception 'user_not_found'; end if;
   if exists(select 1 from public.token_ledger where user_id=p_user_id and reference_id=p_reference_id and kind='refund') then
     select balance into new_balance from public.profiles where id=p_user_id;
     return new_balance;
@@ -92,6 +99,9 @@ begin
   return new_balance;
 end; $$;
 
-grant execute on function public.spend_token(uuid,text) to authenticated, service_role;
-grant execute on function public.refund_token(uuid,text,text) to authenticated, service_role;
+revoke all on function public.spend_token(uuid,text) from public, anon, authenticated;
+revoke all on function public.refund_token(uuid,text,text) from public, anon, authenticated;
+revoke all on function public.admin_add_tokens(uuid,integer,text) from public, anon, authenticated;
+grant execute on function public.spend_token(uuid,text) to service_role;
+grant execute on function public.refund_token(uuid,text,text) to service_role;
 grant execute on function public.admin_add_tokens(uuid,integer,text) to service_role;
