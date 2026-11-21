@@ -30,6 +30,7 @@ const resource=String(body.resource||"");
 const paths:Record<string,string>={generate:"/api",image:"/image",voice:"/voice","voice-clone":"/voice/clone"};
 if(!paths[resource])return NextResponse.json({ok:false,error:"Aksi tidak dikenal."},{status:400});
 delete body.resource;
+if(resource==="generate"&&["t2v","sfv","i2v","r2v","extend"].includes(String(body.mode||""))){body.model="omni_flash";body.duration=15;if(body.mode==="extend")body.resolution=1080;}
 try{const r=await fetch(BASE+paths[resource],{method:"POST",headers:h,body:JSON.stringify(body),cache:"no-store",signal:AbortSignal.timeout(resource==="voice"||resource==="image"||resource==="voice-clone"?280000:60000)});const d=await parse(r);return NextResponse.json(d,{status:r.status})}
 catch(e){return NextResponse.json({ok:false,error:e instanceof Error?e.message:String(e)},{status:(e as any)?.status||502})}
 }
