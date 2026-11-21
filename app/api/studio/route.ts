@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
-const BASE = "https://nexabot.id/api/v1";
+const BASE = (process.env.PRIVATE_ENGINE_URL || "").replace(/\/+$/, "") + "/api/v1";
 function headers(){const key=process.env.NEXABOT_API_KEY;if(!key)throw new Error("Engine belum dikonfigurasi. Hubungi administrator KAZAMA AI.");return {"x-api-key":key,"Content-Type":"application/json",Accept:"application/json"};}
-async function parse(r:Response){const raw=await r.text();let d:any;try{d=raw?JSON.parse(raw):{};}catch{throw new Error("Respons NexaBot tidak valid ("+r.status+").");}if(!r.ok||d?.ok===false)throw Object.assign(new Error(String(d?.error||d?.message||"private service gagal ("+r.status+").")),{status:r.status||502});return d;}
+async function parse(r:Response){const raw=await r.text();let d:any;try{d=raw?JSON.parse(raw):{};}catch{throw new Error("Respons layanan tidak valid ("+r.status+").");}if(!r.ok||d?.ok===false)throw Object.assign(new Error(String(d?.error||d?.message||"Layanan sedang tidak tersedia ("+r.status+").").replace(/nexabot/ig,"layanan").replace(/https?:\/\/[^\s]+/ig,"")),{status:r.status||502});return d;}
 export async function GET(req:NextRequest){
 const q=req.nextUrl.searchParams,resource=q.get("resource")||"settings";
-if(resource==="settings")return NextResponse.json({configured:Boolean(process.env.NEXABOT_API_KEY),});if(resource==="members"){try{const r=await fetch(BASE+"/public/members",{cache:"no-store",signal:AbortSignal.timeout(15000)});const d=await r.json();return NextResponse.json(d,{status:r.status})}catch(e){return NextResponse.json({ok:false,error:e instanceof Error?e.message:String(e)},{status:502})}}
+if(resource==="settings")return NextResponse.json({configured:Boolean(process.env.NEXABOT_API_KEY)});
 let h;try{h=headers()}catch(e){return NextResponse.json({ok:false,error:e instanceof Error?e.message:String(e),configured:false},{status:503})}
 try{
 let url="";
