@@ -8,7 +8,7 @@ function adminDb(){const url=process.env.NEXT_PUBLIC_SUPABASE_URL;const key=proc
 async function currentUser(){const s=await supabaseServer();const {data,error}=await s.auth.getUser();if(error||!data.user)throw Object.assign(new Error("Silakan masuk terlebih dahulu."),{status:401});return data.user}
 function isAdmin(email?:string){return !!email&&!!process.env.KAZAMA_ADMIN_EMAIL&&email.toLowerCase()===process.env.KAZAMA_ADMIN_EMAIL.toLowerCase()}
 function headers(){const key=process.env.NEXABOT_API_KEY;if(!key)throw new Error("Engine belum dikonfigurasi. Hubungi administrator KAZAMA AI.");return {"x-api-key":key,"Content-Type":"application/json",Accept:"application/json"}}
-async function parse(r:Response){const raw=await r.text();let d:any;try{d=raw?JSON.parse(raw):{}}catch{throw new Error("Respons layanan tidak valid ("+r.status+").")}if(!r.ok||d?.ok===false)throw Object.assign(new Error(String(d?.error||d?.message||"Layanan sedang tidak tersedia ("+r.status+").").replace(/nexabot/ig,"layanan").replace(/https?:\\/\\/[^\\s]+/ig,"")),{status:r.status||502});return d}
+async function parse(r:Response){const raw=await r.text();let d:any;try{d=raw?JSON.parse(raw):{}}catch{throw new Error("Respons layanan tidak valid ("+r.status+").")}if(!r.ok||d?.ok===false)throw Object.assign(new Error(String(d?.error||d?.message||"Layanan sedang tidak tersedia ("+r.status+").").replace(/nexabot/ig,"layanan")),{status:r.status||502});return d}
 export async function GET(req:NextRequest){
  let user:any;try{user=await currentUser()}catch(e){return NextResponse.json({ok:false,error:e instanceof Error?e.message:String(e)},{status:(e as any)?.status||401})}
  const q=req.nextUrl.searchParams,resource=q.get("resource")||"settings";
