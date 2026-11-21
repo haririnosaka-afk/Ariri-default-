@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
-import { Sparkles, LogIn, UserPlus, Mail, ShieldCheck } from "lucide-react";
+import { Sparkles, LogIn, UserPlus, ShieldCheck } from "lucide-react";
 
 export default function LoginPage() {
   const [email,setEmail]=useState("");
