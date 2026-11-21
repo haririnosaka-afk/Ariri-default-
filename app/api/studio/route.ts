@@ -1,4 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import { supabaseServer } from "@/lib/supabase-server";
+
+function adminDb(){const url=process.env.NEXT_PUBLIC_SUPABASE_URL;const key=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!url||!key)throw new Error("Database token belum dikonfigurasi.");return createClient(url,key,{auth:{persistSession:false}})}
+async function currentUser(){const s=await supabaseServer();const {data,error}=await s.auth.getUser();if(error||!data.user)throw Object.assign(new Error("Silakan masuk terlebih dahulu."),{status:401});return data.user}
+function isAdmin(email?:string){return !!email&&!!process.env.KAZAMA_ADMIN_EMAIL&&email.toLowerCase()===process.env.KAZAMA_ADMIN_EMAIL.toLowerCase()}
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 const BASE = (process.env.PRIVATE_ENGINE_URL || "").replace(/\/+$/, "") + "/api/v1";
@@ -10,6 +16,16 @@ if(resource==="settings")return NextResponse.json({configured:Boolean(process.en
 let h;try{h=headers()}catch(e){return NextResponse.json({ok:false,error:e instanceof Error?e.message:String(e),configured:false},{status:503})}
 try{
 let url="";
+if(resource==="account"){
+ const db=adminDb();const [{data:profile,error:pe},{data:ledger,error:le}]=await Promise.all([db.from("profiles").select("id,email,balance,is_admin,created_at").eq("id",user.id).single(),db.from("token_ledger").select("id,amount,kind,description,created_at").eq("user_id",user.id).order("created_at",{ascending:false}).limit(30)]);
+ if(pe||le)throw new Error("Profil atau dompet belum siap. Pastikan schema Supabase sudah dijalankan.");
+ return NextResponse.json({profile,ledger});
+}
+if(resource==="admin-users"){
+ if(!isAdmin(user.email))return NextResponse.json({ok:false,error:"Akses admin ditolak."},{status:403});
+ const db=adminDb();const {data,error}=await db.from("profiles").select("id,email,balance,created_at").order("created_at",{ascending:false}).limit(500);
+ if(error)throw error;return NextResponse.json({users:data||[]});
+}
 if(resource==="credit")url=BASE+"/api/credit";
 else if(resource==="voices")url=BASE+"/voices";
 else if(resource==="modes")url=BASE+"/modes";
@@ -20,7 +36,9 @@ const id=q.get("id")||"",r=await fetch(BASE+"/jobs/"+encodeURIComponent(id)+"/do
 if(!r.ok){const d=await r.text();return NextResponse.json({ok:false,error:d||"Unduhan belum tersedia."},{status:r.status})}
 const blob=await r.arrayBuffer();return new NextResponse(blob,{status:200,headers:{"Content-Type":r.headers.get("content-type")||"video/mp4","Content-Disposition":r.headers.get("content-disposition")||'attachment; filename="kazama-result"',"Cache-Control":"no-store"}});
 }else return NextResponse.json({ok:false,error:"Resource tidak dikenal."},{status:400});
-const r=await fetch(url,{headers:h,cache:"no-store",signal:AbortSignal.timeout(30000)});const d=await parse(r);if(resource==="credit")return NextResponse.json({credit:d.credit,credit_cost:d.credit_cost,video_credit_cost:d.video_credit_cost,video_credit_costs:d.video_credit_costs,voice_credit_cost:d.voice_credit_cost,image_credit_cost:d.image_credit_cost,clone_credit_cost:d.clone_credit_cost});return NextResponse.json(d);
+const r=await fetch(url,{headers:h,cache:"no-store",signal:AbortSignal.timeout(30000)});const d=await parse(r);
+if(resource==="credit"){const db=adminDb();const {data:wallet,error}=await db.from("profiles").select("balance").eq("id",user.id).single();if(error)throw new Error("Dompet belum dibuat. Jalankan SQL schema Supabase.");return NextResponse.json({credit:wallet.balance,balance:wallet.balance,video_credit_cost:d.video_credit_cost??d.credit_cost,video_credit_costs:d.video_credit_costs,voice_credit_cost:d.voice_credit_cost,image_credit_cost:d.image_credit_cost,clone_credit_cost:d.clone_credit_cost});}
+return NextResponse.json(d);
 }catch(e){const status=(e as any)?.status||502;return NextResponse.json({ok:false,error:e instanceof Error?e.message:String(e)},{status})}
 }
 export async function POST(req:NextRequest){
