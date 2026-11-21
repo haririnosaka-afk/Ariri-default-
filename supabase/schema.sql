@@ -19,6 +19,20 @@ create table if not exists public.token_ledger (
   created_at timestamptz not null default now()
 );
 create index if not exists token_ledger_user_created_idx on public.token_ledger(user_id, created_at desc);
+create table if not exists public.generation_jobs (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  token_reference text not null,
+  provider_job_id text not null,
+  created_at timestamptz not null default now(),
+  unique(user_id, token_reference),
+  unique(user_id, provider_job_id)
+);
+create index if not exists generation_jobs_user_ref_idx
+  on public.generation_jobs(user_id, token_reference);
+alter table public.generation_jobs enable row level security;
+revoke all on public.generation_jobs from public, anon, authenticated;
+
 create unique index if not exists token_ledger_reference_kind_unique
   on public.token_ledger(user_id, reference_id, kind)
   where reference_id is not null and kind in ('generate','refund');
