@@ -7,7 +7,7 @@ export async function middleware(request: NextRequest) {
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const path = request.nextUrl.pathname;
   if (!url || !anon) {
-    if (path.startsWith("/login") || path.startsWith("/api/auth")) return response;
+    if (path.startsWith("/login") || path.startsWith("/api/auth") || path.startsWith("/auth/callback")) return response;
     return NextResponse.redirect(new URL("/login?setup=1", request.url));
   }
   const supabase = createServerClient(url, anon, {
@@ -20,7 +20,7 @@ export async function middleware(request: NextRequest) {
     },
   });
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user && !path.startsWith("/login") && !path.startsWith("/api/auth")) {
+  if (!user && !path.startsWith("/login") && !path.startsWith("/api/auth") && !path.startsWith("/auth/callback")) {
     const target = new URL("/login", request.url);
     target.searchParams.set("next", path);
     return NextResponse.redirect(target);
