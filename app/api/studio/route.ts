@@ -20,7 +20,7 @@ const id=q.get("id")||"",r=await fetch(BASE+"/jobs/"+encodeURIComponent(id)+"/do
 if(!r.ok){const d=await r.text();return NextResponse.json({ok:false,error:d||"Unduhan belum tersedia."},{status:r.status})}
 const blob=await r.arrayBuffer();return new NextResponse(blob,{status:200,headers:{"Content-Type":r.headers.get("content-type")||"video/mp4","Content-Disposition":r.headers.get("content-disposition")||'attachment; filename="kazama-result"',"Cache-Control":"no-store"}});
 }else return NextResponse.json({ok:false,error:"Resource tidak dikenal."},{status:400});
-const r=await fetch(url,{headers:h,cache:"no-store",signal:AbortSignal.timeout(30000)});const d=await parse(r);return NextResponse.json(d);
+const r=await fetch(url,{headers:h,cache:"no-store",signal:AbortSignal.timeout(30000)});const d=await parse(r);if(resource==="credit")return NextResponse.json({credit:d.credit,credit_cost:d.credit_cost,video_credit_cost:d.video_credit_cost,video_credit_costs:d.video_credit_costs,voice_credit_cost:d.voice_credit_cost,image_credit_cost:d.image_credit_cost,clone_credit_cost:d.clone_credit_cost});return NextResponse.json(d);
 }catch(e){const status=(e as any)?.status||502;return NextResponse.json({ok:false,error:e instanceof Error?e.message:String(e)},{status})}
 }
 export async function POST(req:NextRequest){
