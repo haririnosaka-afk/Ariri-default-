@@ -33,6 +33,7 @@ export async function POST(req:NextRequest){
  let user:any;try{user=await currentUser()}catch(e){return NextResponse.json({ok:false,error:e instanceof Error?e.message:String(e)},{status:(e as any)?.status||401})}
  let body:any;try{body=await req.json()}catch{return NextResponse.json({ok:false,error:"Body JSON tidak valid."},{status:400})}
  const resource=String(body.resource||"");
+ if(resource==="refund"){const reference=String(body.reference||"");if(!reference)return NextResponse.json({ok:false,error:"Referensi refund tidak valid."},{status:400});try{const {data:balance,error}=await adminDb().rpc("refund_token",{p_user_id:user.id,p_reference_id:reference,p_reason:String(body.reason||"Generation failed")});if(error)throw error;return NextResponse.json({ok:true,balance})}catch(e){return NextResponse.json({ok:false,error:e instanceof Error?e.message:String(e)},{status:500})}}
  if(resource==="admin-credit"){
   if(!isAdmin(user.email))return NextResponse.json({ok:false,error:"Akses admin ditolak."},{status:403});
   const email=String(body.email||"").trim().toLowerCase(),amount=Number(body.tokens);
