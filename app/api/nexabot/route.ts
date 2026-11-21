@@ -6,7 +6,7 @@ function headers(){const key=process.env.NEXABOT_API_KEY;if(!key)throw new Error
 async function parse(r:Response){const raw=await r.text();let d:any;try{d=raw?JSON.parse(raw):{};}catch{throw new Error("Respons NexaBot tidak valid ("+r.status+").");}if(!r.ok||d?.ok===false)throw Object.assign(new Error(String(d?.error||d?.message||"NexaBot API gagal ("+r.status+").")),{status:r.status||502});return d;}
 export async function GET(req:NextRequest){
 const q=req.nextUrl.searchParams,resource=q.get("resource")||"settings";
-if(resource==="settings")return NextResponse.json({configured:Boolean(process.env.NEXABOT_API_KEY),provider:"NexaBot",baseUrl:"https://nexabot.id"});
+if(resource==="settings")return NextResponse.json({configured:Boolean(process.env.NEXABOT_API_KEY),provider:"NexaBot",baseUrl:"https://nexabot.id"});if(resource==="members"){try{const r=await fetch(BASE+"/public/members",{cache:"no-store",signal:AbortSignal.timeout(15000)});const d=await r.json();return NextResponse.json(d,{status:r.status})}catch(e){return NextResponse.json({ok:false,error:e instanceof Error?e.message:String(e)},{status:502})}}
 let h;try{h=headers()}catch(e){return NextResponse.json({ok:false,error:e instanceof Error?e.message:String(e),configured:false},{status:503})}
 try{
 let url="";
