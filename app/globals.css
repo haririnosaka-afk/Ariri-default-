@@ -5,3 +5,5 @@
 @media(max-width:760px){.media-preview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.media-preview-card img,.media-preview-card video{height:125px}}
 
 .uploadbox>svg{width:15px;height:15px;stroke-width:1.8}.uploadbox.has-files{border-style:solid;border-color:#356d5a;background:#13271f;color:#a5f1d2!important;min-height:68px!important}.uploadbox.has-files b{color:#a5f1d2}.uploadbox.has-files small{color:#8acbb2}.uploadbox.has-files svg{color:#73e1bd;flex:none}.uploadbox.compact.has-files{min-height:45px!important}
+
+.upload-icon-square{width:30px;height:30px;display:grid;place-items:center;border:1px solid #51466f;border-radius:7px;background:#211d32;color:#c9baff;flex:none}.upload-icon-square.small{width:25px;height:25px;border-radius:6px}.uploadbox.has-files .upload-icon-square{border-color:#356d5a;background:#18352e;color:#73e1bd}.uploadbox.compact .upload-icon-square{width:25px;height:25px}
