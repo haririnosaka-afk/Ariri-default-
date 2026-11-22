@@ -2,6 +2,12 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
+  // Remove ChatGPT link-tracking from the browser address bar.
+  if (request.nextUrl.searchParams.get("utm_source") === "chatgpt.com") {
+    const cleanUrl = request.nextUrl.clone();
+    cleanUrl.searchParams.delete("utm_source");
+    return NextResponse.redirect(cleanUrl, 308);
+  }
   const response = NextResponse.next({ request });
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
