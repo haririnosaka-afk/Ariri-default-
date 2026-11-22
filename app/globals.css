@@ -7,3 +7,14 @@
 .uploadbox>svg{width:15px;height:15px;stroke-width:1.8}.uploadbox.has-files{border-style:solid;border-color:#356d5a;background:#13271f;color:#a5f1d2!important;min-height:68px!important}.uploadbox.has-files b{color:#a5f1d2}.uploadbox.has-files small{color:#8acbb2}.uploadbox.has-files svg{color:#73e1bd;flex:none}.uploadbox.compact.has-files{min-height:45px!important}
 
 .upload-icon-square{width:30px;height:30px;display:grid;place-items:center;border:1px solid #51466f;border-radius:7px;background:#211d32;color:#c9baff;flex:none}.upload-icon-square.small{width:25px;height:25px;border-radius:6px}.uploadbox.has-files .upload-icon-square{border-color:#356d5a;background:#18352e;color:#73e1bd}.uploadbox.compact .upload-icon-square{width:25px;height:25px}
+
+/* Compact media picker: persistent square thumbnails with an adjacent add tile */
+.media-picker-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap;min-height:70px;padding:2px 0}
+.media-thumb-tile,.media-add-tile{position:relative;width:66px;height:66px;flex:0 0 66px;border:1px solid #39465c;border-radius:10px;overflow:hidden;background:#111927}
+.media-thumb-tile img{display:block;width:100%;height:100%;object-fit:cover}
+.media-thumb-video{width:100%;height:100%;display:grid;place-items:center;color:#c8baff;background:linear-gradient(145deg,#292341,#111927)}
+.media-thumb-tile>button{position:absolute;top:3px;right:3px;width:19px;height:19px;padding:0;display:grid;place-items:center;border:1px solid #ffffff55;border-radius:6px;background:#090b12d9;color:#fff}
+.media-add-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:1px dashed #7566a7;background:#171529;color:#c9baff;cursor:pointer}
+.media-add-tile small{font-size:9px;color:#a99ce0}
+.media-add-tile input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.media-picker-hint{font-size:9px;color:#8490a4;margin-left:2px}
