@@ -73,3 +73,12 @@
 
 .output-actions{display:flex;align-items:center;gap:8px}.retention-note{display:flex;align-items:center;gap:7px;margin-top:10px;padding:9px 10px;border:1px solid #3b4560;border-radius:8px;background:#171d2a;color:#b9c4d6;font-size:9px;font-variant-numeric:tabular-nums}.retention-note.urgent{border-color:#815b36;background:#2b2119;color:#ffd29b}
 @media(max-width:420px){.output-actions{gap:5px}.output-actions .secondary{padding:7px 8px;font-size:8px}}
+
+
+/* Live Output generation animation */
+.output-loader{width:62px;height:62px;position:relative;display:grid;place-items:center;color:#d2c3ff;filter:drop-shadow(0 0 12px rgba(169,148,255,.45))}
+.output-loader svg{animation:kazama-orbit 1.15s linear infinite}
+.output-loader span{position:absolute;inset:5px;border:1px solid rgba(177,151,255,.25);border-right-color:#cbbaff;border-radius:50%;animation:kazama-orbit 2s linear infinite reverse}
+.output-progress{width:min(190px,75%);height:4px;margin-top:5px;overflow:hidden;border-radius:10px;background:#343044}
+.output-progress i{display:block;width:38%;height:100%;border-radius:10px;background:linear-gradient(90deg,#8b70ed,#d7c7ff,#8b70ed);animation:kazama-progress 1.7s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){.output-loader svg,.output-loader span,.output-progress i{animation:none}}
