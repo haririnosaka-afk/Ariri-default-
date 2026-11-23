@@ -271,3 +271,5 @@ button:focus-visible,a:focus-visible{outline:2px solid #bba8ff;outline-offset:3p
 .generation-time span{font-size:9px;color:#9da7bc;line-height:1.5}
 .generation-time-inline{margin:10px 0 0}
 @media(max-width:520px){.history-list-modal .creation{flex-wrap:wrap}.history-list-modal .creationbody{min-width:calc(100% - 60px)}.confirm-dialog{padding:20px}.confirm-actions{flex-direction:column-reverse}.confirm-actions button{width:100%}}
+
+.file-size-note{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:9px;padding:10px 12px;border:1px solid rgba(177,160,255,.2);border-radius:10px;background:rgba(18,17,32,.72);font-size:11px;color:#aeb5c7}.file-size-note b{color:#e8e0ff;font-size:12px;font-variant-numeric:tabular-nums}
