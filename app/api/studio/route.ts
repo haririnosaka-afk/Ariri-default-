@@ -53,7 +53,7 @@ export async function POST(req:NextRequest){
  const paths:Record<string,string>={generate:"/api",image:"/image",voice:"/voice","voice-clone":"/voice/clone"};
  if(!paths[resource])return NextResponse.json({ok:false,error:"Aksi tidak dikenal."},{status:400});
  delete body.resource;
- if(resource==="generate"&&["t2v","sfv","i2v","r2v","extend"].includes(String(body.mode||""))){body.model="omni_flash";body.duration=15;if(body.mode==="extend")body.resolution=1080}
+ if(resource==="generate"&&["t2v","sfv","i2v","r2v","extend"].includes(String(body.mode||""))){body.model="omni_flash";if(body.mode==="r2v")body.duration=15;else if(body.duration===undefined)body.duration=15;if(body.mode==="extend")body.resolution=1080}
  let charged=false,chargeRef="",providerAccepted=false;
  try{
   if(!isAdmin(user.email)){chargeRef=crypto.randomUUID();const {error}=await adminDb().rpc("spend_token",{p_user_id:user.id,p_reference_id:chargeRef,p_cost_units:resource==="image"?1:2});if(error)throw Object.assign(new Error(error.message.includes("insufficient_tokens")?"Token tidak cukup. Silakan isi saldo terlebih dahulu.":error.message),{status:error.message.includes("insufficient_tokens")?402:500});charged=true}
