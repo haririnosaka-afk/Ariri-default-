@@ -18,3 +18,6 @@
 .media-add-tile small{font-size:9px;color:#a99ce0}
 .media-add-tile input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
 .media-picker-hint{font-size:9px;color:#8490a4;margin-left:2px}
+
+/* Admin customer rows can be selected to fill the credit form. */
+.admin-user-row{cursor:pointer;border-radius:9px;padding-left:10px;padding-right:10px;transition:background .18s,border-color .18s;outline:none;border:1px solid transparent}.admin-user-row:hover,.admin-user-row:focus-visible{background:#191d2b;border-color:#554b79}.admin-user-row.selected{background:#211d35;border-color:#8b78c8}.admin-user-row:active{transform:scale(.995)}
