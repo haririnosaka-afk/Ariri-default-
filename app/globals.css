@@ -57,3 +57,15 @@
 @keyframes kazama-pulse{0%,100%{transform:scale(.88);opacity:.72}50%{transform:scale(1.08);opacity:1}}
 @keyframes kazama-progress{0%{transform:translateX(-120%)}100%{transform:translateX(290%)}}
 @media(prefers-reduced-motion:reduce){.generation-orbit,.generation-core,.generation-progress i{animation:none}}
+
+/* Clickable creation history and media preview dialog */
+.clickable-creation{cursor:pointer;border-radius:9px;padding-left:9px;padding-right:9px;transition:background .16s}
+.clickable-creation:hover,.clickable-creation:focus-visible{background:#191d2b;outline:1px solid #65578f}
+.history-modal-backdrop{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:18px;background:rgba(3,5,10,.82);backdrop-filter:blur(8px)}
+.history-modal{width:min(760px,100%);max-height:90vh;overflow:auto;padding:16px;border:1px solid #45405f;border-radius:14px;background:#111722;box-shadow:0 24px 80px #000b;display:flex;flex-direction:column;gap:13px}
+.history-modal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.history-modal-head b{display:block;font-size:13px}
+.history-modal-head small{display:block;margin-top:5px;color:#9aa5b7;font-size:10px;line-height:1.5;overflow-wrap:anywhere}
+.history-modal-media{min-height:180px;max-height:65vh;display:grid;place-items:center;overflow:hidden;border:1px solid #30394a;border-radius:9px;background:#05070b}
+.history-modal-media video,.history-modal-media img{display:block;max-width:100%;max-height:65vh;object-fit:contain}
+.history-modal-media audio{width:min(520px,90%)}
