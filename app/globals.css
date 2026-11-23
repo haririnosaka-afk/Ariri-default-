@@ -42,3 +42,18 @@
 /* Always-visible customer token balance */
 .balance-chip{display:flex;align-items:center;gap:7px;white-space:nowrap;padding:7px 10px;border:1px solid #554b79;border-radius:999px;background:#211d35;color:#c9b8ff;font-size:11px;line-height:1}.balance-chip b{font-size:13px;color:#f0eaff;font-variant-numeric:tabular-nums}.balance-chip svg{flex:none;color:#b9a2ff}
 @media(max-width:520px){.balance-chip{padding:6px 8px;gap:5px;font-size:10px}.balance-chip b{font-size:12px}.topright{gap:6px}.connection{display:none}}
+
+
+/* Premium generation activity indicator */
+.generation-loading{display:flex;align-items:center;gap:15px;margin:0 0 18px;padding:16px 18px;border:1px solid rgba(164,133,255,.42);border-radius:15px;background:linear-gradient(110deg,rgba(90,65,150,.20),rgba(23,28,43,.96));box-shadow:0 8px 28px rgba(0,0,0,.18);overflow:hidden}
+.generation-orbit{width:48px;height:48px;flex:0 0 48px;display:grid;place-items:center;border-radius:50%;border:1px solid rgba(174,148,255,.45);border-top-color:#d4c4ff;animation:kazama-orbit 1.4s linear infinite;box-shadow:0 0 18px rgba(155,121,255,.2)}
+.generation-core{width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:rgba(153,119,255,.2);color:#d6c7ff;animation:kazama-pulse 1.3s ease-in-out infinite}
+.generation-copy{min-width:0;flex:1;display:flex;flex-direction:column;gap:5px}
+.generation-copy b{font-size:12px;color:#eee8ff;letter-spacing:.2px}
+.generation-copy span{font-size:10px;line-height:1.5;color:#aeb8ca}
+.generation-progress{height:3px;width:100%;overflow:hidden;border-radius:8px;background:#343044;margin-top:5px}
+.generation-progress i{display:block;width:38%;height:100%;border-radius:8px;background:linear-gradient(90deg,#8b70ed,#d7c7ff,#8b70ed);animation:kazama-progress 1.7s ease-in-out infinite}
+@keyframes kazama-orbit{to{transform:rotate(360deg)}}
+@keyframes kazama-pulse{0%,100%{transform:scale(.88);opacity:.72}50%{transform:scale(1.08);opacity:1}}
+@keyframes kazama-progress{0%{transform:translateX(-120%)}100%{transform:translateX(290%)}}
+@media(prefers-reduced-motion:reduce){.generation-orbit,.generation-core,.generation-progress i{animation:none}}
