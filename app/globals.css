@@ -38,3 +38,7 @@
 .notification-item small{font-size:8px;color:#8290a5}
 .notification-empty{font-size:10px;color:#8995a8;text-align:center;padding:20px 5px}
 @media(max-width:640px){.notification-popover{right:0;top:calc(100% + 9px)}}
+
+/* Always-visible customer token balance */
+.balance-chip{display:flex;align-items:center;gap:7px;white-space:nowrap;padding:7px 10px;border:1px solid #554b79;border-radius:999px;background:#211d35;color:#c9b8ff;font-size:11px;line-height:1}.balance-chip b{font-size:13px;color:#f0eaff;font-variant-numeric:tabular-nums}.balance-chip svg{flex:none;color:#b9a2ff}
+@media(max-width:520px){.balance-chip{padding:6px 8px;gap:5px;font-size:10px}.balance-chip b{font-size:12px}.topright{gap:6px}.connection{display:none}}
