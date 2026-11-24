@@ -55,7 +55,8 @@ function modelKey(model: any) {
   return String(model?.model_key || model?.key || model?.id || model?.model || "");
 }
 function providerCost(model: any) {
-  return Number(model?.price ?? model?.price_idr ?? model?.cost_idr ?? model?.cost ?? 0);
+  const raw = model?.price ?? model?.price_idr ?? model?.cost_idr ?? model?.cost ?? 0;
+  return typeof raw === "number" ? raw : Number(String(raw).replace(/[^0-9]/g, ""));
 }
 function isImageModel(model: any) {
   const category = String(model?.category || model?.type || model?.group || "").toLowerCase();
@@ -67,7 +68,14 @@ function customerTokens(model: any) {
   if (isImageModel(model)) return Math.max(0.5, Math.ceil(price / 1000) * 0.5);
   return Math.max(1, Math.ceil(price / TOKEN_PRICE_IDR));
 }
-function dbJobStatus(value: any) {\n  const status = String(value || "").toLowerCase();\n  if (["completed", "done", "success", "succeeded"].includes(status)) return "succeeded";\n  if (["failed", "error", "cancelled", "canceled", "blocked"].includes(status)) return status === "blocked" ? "blocked" : "failed";\n  if (["queued", "submitted", "processing"].includes(status)) return status;\n  return "queued";\n}\nfunction visibleModel(model: any) {
+function dbJobStatus(value: any) {
+  const status = String(value || "").toLowerCase();
+  if (["completed", "done", "success", "succeeded"].includes(status)) return "succeeded";
+  if (["failed", "error", "cancelled", "canceled", "blocked"].includes(status)) return status === "blocked" ? "blocked" : "failed";
+  if (["queued", "submitted", "processing"].includes(status)) return status;
+  return "queued";
+}
+function visibleModel(model: any) {
   const key = modelKey(model);
   const name = String(model?.name || model?.title || "");
   const combined = (key + " " + name).toLowerCase();
@@ -77,6 +85,14 @@ function dbJobStatus(value: any) {\n  const status = String(value || "").toLower
   // Customer-facing price is rounded up to whole KAZAMA tokens. Keep models at or below Rp7.000.
   if (customerTokens(model) * TOKEN_PRICE_IDR > 7000) return false;
   return true;
+}
+function isVideoModel(model: any) {
+  const key = modelKey(model).toLowerCase();
+  const name = String(model?.name || model?.title || "").toLowerCase();
+  const category = String(model?.category || model?.type || model?.group || model?.task_type || "").toLowerCase();
+  if (category.includes("image") || category.includes("audio") || category.includes("music") || category.includes("tts") || category.includes("voice")) return false;
+  if (category.includes("video") || category.includes("motion")) return true;
+  return /^(grok_imagine|grok_imagine_15|betagrok|seedance|wan_|wan3_|minimax_h3(?!_lipsync)|kling_|betamotion|motion_control|upscale_video|watermark_remover|ltx_)/.test(key) || /video|motion control|upscale video|watermark remover/.test(name);
 }
 async function getCatalog() {
   const [catalog, statuses] = await Promise.all([
