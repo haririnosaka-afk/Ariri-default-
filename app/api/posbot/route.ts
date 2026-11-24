@@ -64,7 +64,7 @@ function dbJobStatus(value: any) {\n  const status = String(value || "").toLower
   const key = modelKey(model);
   const name = String(model?.name || model?.title || "");
   const combined = (key + " " + name).toLowerCase();
-  if (!key || combined.includes("omni") || combined.includes("omni flash")) return false;
+  if (!key || key.toLowerCase().includes("omni_flash") || combined.includes("omni flash")) return false;
   const price = providerCost(model);
   if (!Number.isFinite(price) || price <= 0) return false;
   // Customer-facing price is rounded up to whole KAZAMA tokens. Keep models at or below Rp7.000.
