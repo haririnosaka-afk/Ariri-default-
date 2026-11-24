@@ -57,8 +57,15 @@ function modelKey(model: any) {
 function providerCost(model: any) {
   return Number(model?.price ?? model?.price_idr ?? model?.cost_idr ?? model?.cost ?? 0);
 }
+function isImageModel(model: any) {
+  const category = String(model?.category || model?.type || model?.group || "").toLowerCase();
+  const key = modelKey(model).toLowerCase();
+  return category.includes("image") || /^(krea|nano_banana|gpt_image|flux|seedream|face_swap|upscale_4k)/.test(key);
+}
 function customerTokens(model: any) {
-  return Math.max(1, Math.ceil(providerCost(model) / TOKEN_PRICE_IDR));
+  const price = providerCost(model);
+  if (isImageModel(model)) return Math.max(0.5, Math.ceil(price / 1000) * 0.5);
+  return Math.max(1, Math.ceil(price / TOKEN_PRICE_IDR));
 }
 function dbJobStatus(value: any) {\n  const status = String(value || "").toLowerCase();\n  if (["completed", "done", "success", "succeeded"].includes(status)) return "succeeded";\n  if (["failed", "error", "cancelled", "canceled", "blocked"].includes(status)) return status === "blocked" ? "blocked" : "failed";\n  if (["queued", "submitted", "processing"].includes(status)) return status;\n  return "queued";\n}\nfunction visibleModel(model: any) {
   const key = modelKey(model);
