@@ -60,7 +60,7 @@ function providerCost(model: any) {
 function customerTokens(model: any) {
   return Math.max(1, Math.ceil(providerCost(model) / TOKEN_PRICE_IDR));
 }
-function visibleModel(model: any) {
+function dbJobStatus(value: any) {\n  const status = String(value || "").toLowerCase();\n  if (["completed", "done", "success", "succeeded"].includes(status)) return "succeeded";\n  if (["failed", "error", "cancelled", "canceled", "blocked"].includes(status)) return status === "blocked" ? "blocked" : "failed";\n  if (["queued", "submitted", "processing"].includes(status)) return status;\n  return "queued";\n}\nfunction visibleModel(model: any) {
   const key = modelKey(model);
   const name = String(model?.name || model?.title || "");
   const combined = (key + " " + name).toLowerCase();
@@ -145,7 +145,7 @@ export async function GET(request: NextRequest) {
       const failed = ["failed", "error", "cancelled", "canceled"].includes(status);
       const completed = ["completed", "done", "success"].includes(status);
       await db.from("generation_jobs").update({
-        status: failed ? "failed" : completed ? "completed" : status,
+        status: failed ? "failed" : completed ? "succeeded" : dbJobStatus(status),
         result_url: resultUrl,
         error_message: job.error || job.message || null,
         updated_at: new Date().toISOString(),
