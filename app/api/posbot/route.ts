@@ -100,7 +100,7 @@ async function ensureBucket(db: ReturnType<typeof dbAdmin>) {
   }
 }
 async function uploadDataUrl(db: ReturnType<typeof dbAdmin>, userId: string, item: any, index: number) {
-  const value = String(item?.data || "");
+  const value = String(item?.url || item?.data || "");
   const match = value.match(/^data:([^;]+);base64,([\s\S]+)$/);
   if (!match) {
     if (/^https?:\/\//i.test(value)) return value;
