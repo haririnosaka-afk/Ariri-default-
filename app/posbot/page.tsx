@@ -20,7 +20,6 @@ export default function PosBotStudio() {
   const [prompt, setPrompt] = useState("");
   const [negative, setNegative] = useState("");
   const [ratio, setRatio] = useState("9:16");
-  const [duration, setDuration] = useState("15");
   const [lyrics, setLyrics] = useState("");
   const [instrumental, setInstrumental] = useState(false);
   const [voice, setVoice] = useState("id-ID-Standard-A");
