@@ -297,3 +297,29 @@ button:focus-visible,a:focus-visible{outline:2px solid #bba8ff;outline-offset:3p
 .motion-choice.active{border-color:#a99bdc;background:rgba(169,155,220,.12);box-shadow:inset 0 0 0 1px rgba(169,155,220,.25)}
 .motion-provider-note{padding:12px 14px;margin:10px 0 14px;border:1px solid rgba(230,170,80,.35);border-radius:12px;background:rgba(230,170,80,.08);font-size:12px;line-height:1.55;color:var(--muted,#c7c5d0)}
 @media(max-width:560px){.motion-choice-grid{grid-template-columns:1fr}.motion-choice{padding:12px}}
+
+
+/* KAZAMA wallet: high-contrast token figures and modern pricing cards */
+.credithero{align-items:center;gap:18px;padding:clamp(20px,4vw,30px);min-width:0}
+.credithero>div{min-width:0;flex:1}
+.credithero span{font-size:10px!important;letter-spacing:1.5px!important;color:#c2b7e8!important;font-weight:800}
+.credithero b{display:block!important;margin:9px 0 7px!important;font-family:Manrope,system-ui,sans-serif!important;font-size:clamp(42px,7vw,58px)!important;line-height:1.08!important;letter-spacing:-1.8px!important;color:#fff!important;font-weight:900!important;font-variant-numeric:tabular-nums;text-shadow:0 3px 24px rgba(177,145,255,.28)}
+.credithero small{display:block;font-size:11px!important;line-height:1.55;color:#d0c9e5!important}
+.pricegrid{grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:13px}
+.pricecard{position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:7px;min-width:0;min-height:150px;padding:19px 17px!important;border:1px solid rgba(174,153,255,.22)!important;border-radius:15px!important;background:linear-gradient(150deg,rgba(35,31,58,.98),rgba(17,21,34,.98))!important;box-shadow:0 10px 28px rgba(0,0,0,.16);transition:transform .18s,border-color .18s,box-shadow .18s}
+.pricecard:hover{transform:translateY(-3px);border-color:rgba(190,169,255,.58)!important;box-shadow:0 15px 34px rgba(0,0,0,.25)}
+.pricecard>small:first-child{font-size:10px!important;letter-spacing:1.2px;font-weight:800;color:#c8b9f4!important}
+.pricecard>b{display:block!important;margin:3px 0!important;font-family:Manrope,system-ui,sans-serif!important;font-size:clamp(24px,3vw,30px)!important;line-height:1.15!important;letter-spacing:-.8px;color:#fff!important;font-weight:900!important;white-space:nowrap;font-variant-numeric:tabular-nums;text-shadow:0 2px 16px rgba(177,145,255,.18)}
+.pricecard>small:not(:first-child){font-size:10px!important;line-height:1.45;color:#aeb7ca!important}
+.pricecard .discountnote{color:#8fe3c0!important;font-weight:800}
+.pricecard.bestvalue{border-color:rgba(173,145,255,.7)!important;background:radial-gradient(ellipse at 90% 0%,rgba(143,112,230,.28),transparent 52%),linear-gradient(150deg,#30264e,#171a2b)!important}
+.pricecard .bestbadge{display:inline-flex;align-items:center;padding:5px 8px;border-radius:6px;background:linear-gradient(100deg,#bba7ff,#8c76dc);color:#171126;font-size:9px;font-weight:900;letter-spacing:.6px}
+.balance-chip b{font-size:15px!important;color:#fff!important;font-weight:900!important;text-shadow:0 1px 10px rgba(177,145,255,.22)}
+@media(max-width:520px){
+ .credithero{align-items:flex-start;padding:19px 16px;gap:12px}
+ .credithero b{font-size:42px!important}
+ .credithero .primary{flex:none;padding:9px 10px;font-size:10px}
+ .pricegrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .pricecard{min-height:136px;padding:14px 12px!important}
+ .pricecard>b{font-size:23px!important}
+}
