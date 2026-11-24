@@ -323,3 +323,16 @@ button:focus-visible,a:focus-visible{outline:2px solid #bba8ff;outline-offset:3p
  .pricecard{min-height:136px;padding:14px 12px!important}
  .pricecard>b{font-size:23px!important}
 }
+
+
+/* Refined video model picker */
+.model-select-field{padding:16px;border:1px solid #39334f;border-radius:12px;background:linear-gradient(145deg,#191a2b,#101621);margin-bottom:20px}
+.model-select-field>label{font-size:10px;color:#c7b8ff;letter-spacing:1.3px}
+.field .model-select{height:50px;padding:0 14px;font:700 13px Manrope,sans-serif;border-color:#66578f;background:#0d111c}
+.model-helper{display:block;margin-top:8px;color:#8390a4;font-size:9px}
+.model-selected-info{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 12px;align-items:center;margin-top:12px;padding:12px;border:1px solid #343b50;border-radius:9px;background:#0d131e}
+.model-selected-info>div{min-width:0}
+.model-selected-info span{display:block;font:8px 'DM Mono';letter-spacing:1px;color:#8792a7;margin-bottom:5px}
+.model-selected-info b{display:block;font:700 12px Manrope;color:#f1efff;overflow-wrap:anywhere}
+.model-selected-info strong{font:700 12px Manrope;color:#c8baff;white-space:nowrap}
+.model-selected-info small{grid-column:1/-1;color:#8793a7;font-size:9px}
