@@ -140,7 +140,7 @@ export default function PosBotStudio() {
   const running = !!job && !["completed", "done", "success", "failed", "error", "cancelled", "canceled"].includes(status);
   const resultUrl = String(job?.result_url || "");
   const resultKey = String(job?.model_key || selected).toLowerCase();
-  const resultKind = /\\.(mp3|wav|m4a|ogg)(?:\\?|$)/i.test(resultUrl) || /music|suno|lyria|mureka|sonauto|acestep|tts|voice|lipsync/.test(resultKey) ? "audio" : /\\.(png|jpe?g|webp|gif)(?:\\?|$)/i.test(resultUrl) || /gpt_image|nano_banana|seedream|flux|krea|face_swap|upscale_4k/.test(resultKey) ? "image" : "video";
+  const resultKind = /\.(mp3|wav|m4a|ogg)(?:\?|$)/i.test(resultUrl) || /music|suno|lyria|mureka|sonauto|acestep|tts|voice|lipsync/.test(resultKey) ? "audio" : /\.(png|jpe?g|webp|gif)(?:\?|$)/i.test(resultUrl) || /gpt_image|nano_banana|seedream|flux|krea|face_swap|upscale_4k/.test(resultKey) ? "image" : "video";
 
   return <main style={{ minHeight: "100vh", background: "#090b12", color: "#f5f6fa", padding: "28px 16px 60px", fontFamily: "Inter,system-ui,sans-serif" }}>
     <div style={{ maxWidth: 1040, margin: "0 auto" }}>
