@@ -273,3 +273,19 @@ button:focus-visible,a:focus-visible{outline:2px solid #bba8ff;outline-offset:3p
 @media(max-width:520px){.history-list-modal .creation{flex-wrap:wrap}.history-list-modal .creationbody{min-width:calc(100% - 60px)}.confirm-dialog{padding:20px}.confirm-actions{flex-direction:column-reverse}.confirm-actions button{width:100%}}
 
 .file-size-note{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:9px;padding:10px 12px;border:1px solid rgba(177,160,255,.2);border-radius:10px;background:rgba(18,17,32,.72);font-size:11px;color:#aeb5c7}.file-size-note b{color:#e8e0ff;font-size:12px;font-variant-numeric:tabular-nums}
+
+
+.motion-identity-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+.motion-identity-card{min-width:0;padding:13px;border:1px solid rgba(177,160,255,.22);border-radius:13px;background:linear-gradient(145deg,rgba(31,29,51,.88),rgba(15,18,30,.92))}
+.motion-identity-title{display:flex;flex-direction:column;gap:4px;margin-bottom:11px}
+.motion-identity-title b{font-size:13px;color:#f0eaff}
+.motion-identity-title small{font-size:10px;color:#9da7bc}
+.motion-upload{position:relative;min-height:116px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;border:1px dashed rgba(177,160,255,.4);border-radius:10px;color:#d8cbff;background:rgba(177,160,255,.06);font-size:11px;font-weight:700;cursor:pointer}
+.motion-upload input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.motion-identity-card .media-thumb-tile{width:100%;height:116px}
+.motion-auto-note{display:flex;align-items:center;gap:10px;margin:12px 0 16px;padding:12px;border:1px solid rgba(177,160,255,.22);border-radius:11px;background:rgba(177,160,255,.07);color:#d8cbff}
+.motion-auto-note>span:nth-child(2){display:flex;flex:1;flex-direction:column;gap:4px}
+.motion-auto-note b{font-size:11px}
+.motion-auto-note small{font-size:10px;color:#aeb5c7;line-height:1.5}
+.motion-private-tag{font-size:9px;letter-spacing:1px;font-weight:800;color:#b9a9ff;border:1px solid rgba(177,160,255,.3);padding:4px 6px;border-radius:5px}
+@media(max-width:520px){.motion-identity-grid{gap:8px}.motion-identity-card{padding:9px}.motion-upload{min-height:100px;font-size:10px}.motion-identity-card .media-thumb-tile{height:100px}.motion-auto-note{align-items:flex-start}.motion-private-tag{margin-left:auto}}
