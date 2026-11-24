@@ -120,7 +120,9 @@ async function uploadDataUrl(db: ReturnType<typeof dbAdmin>, userId: string, ite
   const path = userId + "/" + crypto.randomUUID() + "-" + index + "." + ext;
   const { error } = await db.storage.from(BUCKET).upload(path, bytes, { contentType: mime, upsert: false });
   if (error) throw new Error("Gagal mengunggah file referensi: " + error.message);
-  return db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+  const { data: signed, error: signedError } = await db.storage.from(BUCKET).createSignedUrl(path, 86400);
+  if (signedError || !signed?.signedUrl) throw signedError || new Error("Gagal membuat URL referensi sementara.");
+  return signed.signedUrl;
 }
 
 export async function GET(request: NextRequest) {
@@ -130,7 +132,7 @@ export async function GET(request: NextRequest) {
   const resource = request.nextUrl.searchParams.get("resource") || "models";
   try {
     if (resource === "settings") return NextResponse.json({ configured: !!process.env.POSBOT_API_KEY });
-    if (resource === "models") {
+    if (resource === "models" || resource === "video-models") {
       const models = await getCatalog();
       return NextResponse.json({ ok: true, provider: "PosBot", models });
     }
