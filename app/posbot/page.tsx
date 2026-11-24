@@ -123,7 +123,7 @@ export default function PosBotStudio() {
           lyrics, instrumental, voice,
         }),
       });
-      setJob({ job_id: result.job_id, status: result.status || "queued", model: result.model || model.name, customer_tokens: result.customer_tokens, result_url: null });
+      setJob({ job_id: result.job_id, status: result.status || "queued", model: result.model || model.name, model_key: selected, customer_tokens: result.customer_tokens, result_url: null });
       setNotice("Permintaan diterima PosBot. Status akan diperbarui otomatis.");
       setUploads([]);
       const wallet = await request("/api/posbot?resource=balance").catch(() => null);
@@ -138,6 +138,9 @@ export default function PosBotStudio() {
   const mediaRules = String(model?.description || model?.input_schema?.description || "");
   const status = String(job?.status || "").toLowerCase();
   const running = !!job && !["completed", "done", "success", "failed", "error", "cancelled", "canceled"].includes(status);
+  const resultUrl = String(job?.result_url || "");
+  const resultKey = String(job?.model_key || selected).toLowerCase();
+  const resultKind = /\\.(mp3|wav|m4a|ogg)(?:\\?|$)/i.test(resultUrl) || /music|suno|lyria|mureka|sonauto|acestep|tts|voice|lipsync/.test(resultKey) ? "audio" : /\\.(png|jpe?g|webp|gif)(?:\\?|$)/i.test(resultUrl) || /gpt_image|nano_banana|seedream|flux|krea|face_swap|upscale_4k/.test(resultKey) ? "image" : "video";
 
   return <main style={{ minHeight: "100vh", background: "#090b12", color: "#f5f6fa", padding: "28px 16px 60px", fontFamily: "Inter,system-ui,sans-serif" }}>
     <div style={{ maxWidth: 1040, margin: "0 auto" }}>
@@ -195,7 +198,7 @@ export default function PosBotStudio() {
             <p style={muted}>ID: {job.job_id}</p>
             <div style={{ padding: 10, borderRadius: 9, background: "#0c111d", margin: "12px 0" }}>Status: <b>{job.status}</b>{job.progress !== null && job.progress !== undefined ? " · " + job.progress + "%" : ""}</div>
             {running && <p style={muted}>Sedang diproses. Status dicek otomatis setiap 6 detik.</p>}
-            {job.result_url && <><video src={job.result_url} controls playsInline style={{ width: "100%", borderRadius: 10, background: "#000" }}/><a href={job.result_url} target="_blank" rel="noreferrer" style={{ ...primaryStyle, display: "block", textAlign: "center", textDecoration: "none" }}>Buka / Download hasil</a></>}
+            {job.result_url && <>{resultKind === "image" ? <img src={job.result_url} alt="Hasil PosBot" style={{ width: "100%", borderRadius: 10, objectFit: "contain" }}/> : resultKind === "audio" ? <audio src={job.result_url} controls style={{ width: "100%" }}/> : <video src={job.result_url} controls playsInline style={{ width: "100%", borderRadius: 10, background: "#000" }}/>}<a href={job.result_url} target="_blank" rel="noreferrer" style={{ ...primaryStyle, display: "block", textAlign: "center", textDecoration: "none" }}>Buka / Download hasil</a></>}
           </>}
           <div style={{ borderTop: "1px solid #293249", marginTop: 18, paddingTop: 14 }}>
             <b style={{ fontSize: 13 }}>Provider terpisah</b>
