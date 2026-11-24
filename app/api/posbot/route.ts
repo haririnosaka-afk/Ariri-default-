@@ -52,7 +52,7 @@ function unwrapModels(data: any): any[] {
   return Array.isArray(value) ? value : [];
 }
 function modelKey(model: any) {
-  return String(model?.model_key || model?.key || model?.id || model?.model || "");
+  return String(model?.model_key || model?.public_key || model?.key || model?.id || model?.model || "");
 }
 function providerCost(model: any) {
   const raw = model?.price ?? model?.price_idr ?? model?.cost_idr ?? model?.cost ?? 0;
@@ -82,7 +82,7 @@ function visibleModel(model: any) {
   if (!key || key.toLowerCase().includes("omni_flash") || combined.includes("omni flash")) return false;
   const price = providerCost(model);
   if (!Number.isFinite(price) || price <= 0) return false;
-  // Customer-facing price is rounded up to whole KAZAMA tokens. Keep models at or below Rp7.000.
+  // Keep provider models at or below the Rp7.000 provider-cost ceiling.
   if (customerTokens(model) * TOKEN_PRICE_IDR > 7000) return false;
   return true;
 }
