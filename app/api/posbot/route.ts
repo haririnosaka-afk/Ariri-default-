@@ -34,7 +34,7 @@ function posbotHeaders() {
 async function posbot(path: string, init: RequestInit = {}) {
   const response = await fetch(POSBOT_BASE + path, {
     ...init,
-    headers: { ...posbotHeaders(), ...(init.headers || {}) },
+    headers: posbotHeaders(),
     cache: "no-store",
     signal: AbortSignal.timeout(60000),
   });
@@ -315,7 +315,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true, job_id: jobId, status: result.status || "queued", model: model.name, provider_cost_idr: model.price, customer_price_idr: model.customer_price_idr, customer_tokens: tokenCost, token_reference: chargeRef });
     } catch (error: any) {
       if (charged && !providerAccepted) {
-        await db.rpc("refund_token", { p_user_id: user.id, p_reference_id: chargeRef, p_reason: "PosBot request failed before acceptance" }).catch(() => {});
+        try { await db.rpc("refund_token", { p_user_id: user.id, p_reference_id: chargeRef, p_reason: "PosBot request failed before acceptance" }); } catch {}
       }
       throw error;
     }
