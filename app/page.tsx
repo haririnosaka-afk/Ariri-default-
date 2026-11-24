@@ -151,7 +151,7 @@ const posbotModelKey=String(selectedPosbotVideoModel?.model_key||"");
 const posbotRequiredInputs=Array.isArray(selectedPosbotVideoModel?.required_inputs)?selectedPosbotVideoModel.required_inputs.map((x:any)=>String(x)):Array.isArray(selectedPosbotVideoModel?.inputs_required)?selectedPosbotVideoModel.inputs_required.map((x:any)=>String(x)):[];
 const posbotOptionalInputs=Array.isArray(selectedPosbotVideoModel?.optional_inputs)?selectedPosbotVideoModel.optional_inputs.map((x:any)=>String(x)):Array.isArray(selectedPosbotVideoModel?.inputs_optional)?selectedPosbotVideoModel.inputs_optional.map((x:any)=>String(x)):[];
 const posbotSchemaProperties=Object.keys(selectedPosbotVideoModel?.input_schema?.properties||selectedPosbotVideoModel?.schema?.properties||{});
-const posbotSupportedInputs=[...new Set([...posbotRequiredInputs,...posbotOptionalInputs,...posbotSchemaProperties])];
+const posbotSupportedInputs=posbotRequiredInputs.concat(posbotOptionalInputs,posbotSchemaProperties).filter((value:string,index:number,all:string[])=>all.indexOf(value)===index);
 const posbotHasRequiredSchema=Array.isArray(selectedPosbotVideoModel?.required_inputs)||Array.isArray(selectedPosbotVideoModel?.inputs_required);
 const posbotNeedsVideo=posbotSupportedInputs.includes("video_url")||/(r2v|motion_control|betamotion|kling_30_(std|pro)|upscale_video|watermark_remover)/i.test(posbotModelKey);
 const posbotNeedsImage=posbotSupportedInputs.includes("image_url")||/(seedance|wan_|wan3_|minimax_h3|kling_|betagrok|betamotion|motion_control|grok_imagine_2)/i.test(posbotModelKey);
