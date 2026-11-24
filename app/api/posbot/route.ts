@@ -65,9 +65,9 @@ function isImageModel(model: any) {
 }
 function customerTokens(model: any) {
   const price = providerCost(model);
-  // Harga jual = modal provider + keuntungan bersih 2x modal (total 3x modal).
-  if (isImageModel(model)) return Math.max(0.5, Math.ceil((price * 3) / 1000) * 0.5);
-  return Math.max(1, Math.ceil((price * 3) / TOKEN_PRICE_IDR));
+  // Harga jual = modal provider + keuntungan 30% dari modal (total 1,3x modal).
+  if (isImageModel(model)) return Math.max(0.5, Math.ceil((price * 1.3) / 1000) * 0.5);
+  return Math.max(1, Math.ceil((price * 1.3) / TOKEN_PRICE_IDR));
 }
 function dbJobStatus(value: any) {
   const status = String(value || "").toLowerCase();
