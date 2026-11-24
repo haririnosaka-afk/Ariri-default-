@@ -1,17 +1,10 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
 
 type Model = { model_key: string; name: string; price: number; customer_tokens: number; customer_price_idr: number; status?: string; description?: string; category?: string; [key: string]: any };
 type Upload = { kind: "image" | "video" | "audio"; file: File };
 
-async function fileData(file: File) {
-  return await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("File tidak dapat dibaca."));
-    reader.onerror = () => reject(new Error("File tidak dapat dibaca."));
-    reader.readAsDataURL(file);
-  });
-}
 async function request(url: string, init?: RequestInit) {
   const response = await fetch(url, init);
   const data = await response.json().catch(() => ({}));
@@ -46,7 +39,9 @@ export default function PosBotStudio() {
     const key = model?.model_key || "";
     if (key.includes("gpt_image_25")) return 16;
     if (key.includes("seedream_5_pro")) return 10;
-    if (key.includes("seedance")) return 9;
+    if (key === "s2_seedance_25_30s" || key === "seedance_20_15s") return 2;
+    if (key === "seedance_25_30s_strict") return 6;
+    if (key.includes("seedance") || key.includes("wan3")) return 9;
     if (key.includes("flux_2")) return 6;
     return 4;
   }, [model]);
@@ -100,19 +95,31 @@ export default function PosBotStudio() {
   function addFiles(kind: Upload["kind"], files: FileList | null) {
     if (!files) return;
     const added = Array.from(files).map((file) => ({ kind, file }));
-    setUploads((current) => [...current, ...added]);
+    if (kind === "image" && imageCount + added.length > maxImages) { setError("Model ini maksimal " + maxImages + " foto referensi."); return; }
+    if (kind !== "image" && added.some((item) => item.file.size > 50 * 1024 * 1024)) { setError("Ukuran video/audio maksimal 50 MB per file."); return; }
+    setUploads((current) => [...current.filter((item) => item.kind !== kind || kind === "image"), ...added]);
   }
   async function generate() {
     if (!model) return;
     setBusy(true); setError(""); setNotice("");
     try {
-      const files = await Promise.all(uploads.map(async (item) => ({ kind: item.kind, data: await fileData(item.file) })));
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      if (!supabaseUrl || !supabaseKey) throw new Error("Konfigurasi Supabase publik belum lengkap di Vercel.");
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      const files = await Promise.all(uploads.map(async (item) => {
+        const signed = await request("/api/posbot", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ resource: "sign-upload", kind: item.kind, name: item.file.name }) });
+        const uploaded = await supabase.storage.from("posbot-inputs").uploadToSignedUrl(signed.path, signed.token, item.file, { contentType: item.file.type || "application/octet-stream" });
+        if (uploaded.error) throw new Error("Upload " + item.file.name + " gagal: " + uploaded.error.message);
+        const publicUrl = supabase.storage.from("posbot-inputs").getPublicUrl(signed.path).data.publicUrl;
+        return { kind: item.kind, url: publicUrl };
+      }));
       const result = await request("/api/posbot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           resource: "generate", model: model.model_key, prompt, files,
-          aspect_ratio: ratio, duration: Number(duration), negative_prompt: negative,
+          aspect_ratio: ratio, negative_prompt: negative,
           lyrics, instrumental, voice,
         }),
       });
@@ -160,7 +167,7 @@ export default function PosBotStudio() {
           <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={6} placeholder="Tulis instruksi generasi..." style={{ ...fieldStyle, resize: "vertical" }} />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 12 }}>
             <div><label style={labelStyle}>ASPECT RATIO</label><select value={ratio} onChange={(e) => setRatio(e.target.value)} style={fieldStyle}>{["9:16","16:9","1:1","3:4","4:3","2:3","3:2","21:9"].map(x => <option key={x}>{x}</option>)}</select></div>
-            <div><label style={labelStyle}>DURASI (JIKA DIDUKUNG MODEL)</label><select value={duration} onChange={(e) => setDuration(e.target.value)} style={fieldStyle}>{["5","10","15","20","30","60"].map(x => <option key={x} value={x}>{x} detik</option>)}</select></div>
+            <div><label style={labelStyle}>STATUS KATALOG</label><div style={{ ...fieldStyle, color: "#aeb8d0" }}>Tarif & status model diperbarui live dari PosBot.</div></div>
           </div>
           <label style={{ ...labelStyle, marginTop: 14 }}>FOTO REFERENSI (MAKS. {maxImages})</label>
           <input type="file" accept="image/*" multiple onChange={(e) => addFiles("image", e.target.files)} style={fieldStyle} />
