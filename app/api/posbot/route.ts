@@ -147,6 +147,28 @@ export async function GET(request: NextRequest) {
   catch (error: any) { return NextResponse.json({ ok: false, error: error.message }, { status: error.status || 401 }); }
   const resource = request.nextUrl.searchParams.get("resource") || "models";
   try {
+    if (resource === "debug-seedance") {
+      if (!isAdmin(user.email)) return NextResponse.json({ ok: false, error: "Akses admin diperlukan." }, { status: 403 });
+      const [catalog, statuses] = await Promise.all([
+        posbot("/models"),
+        posbot("/models/status").catch(() => null),
+      ]);
+      const statusRows = unwrapModels(statuses || {});
+      const statusMap = new Map(statusRows.map((x: any) => [String(x.model_key || x.key || ""), String(x.status || "").toLowerCase()]));
+      const rows = unwrapModels(catalog).filter((model: any) => /seedance/i.test(modelKey(model) + " " + String(model?.name || model?.title || ""))).map((model: any) => {
+        const key = modelKey(model);
+        const status = statusMap.get(key) || String(model.status || "active").toLowerCase();
+        const price = providerCost(model);
+        const reasons = [];
+        if (!key) reasons.push("missing_model_key");
+        if (!Number.isFinite(price) || price <= 0) reasons.push("missing_or_invalid_price");
+        if (price > 7000) reasons.push("provider_cost_over_7000");
+        if (["maintenance", "disabled", "inactive"].includes(status)) reasons.push("status_" + status);
+        if (!isVideoModel(model)) reasons.push("not_detected_as_video");
+        return { model_key: key, name: String(model.name || model.title || key), provider_cost_idr: price, status, visible: visibleModel(model) && isVideoModel(model) && !["maintenance", "disabled", "inactive"].includes(status), excluded_reasons: reasons };
+      });
+      return NextResponse.json({ ok: true, seedance_models: rows });
+    }
     if (resource === "settings") return NextResponse.json({ configured: !!process.env.POSBOT_API_KEY });
     if (resource === "models" || resource === "video-models") {
       const models = await getCatalog();
