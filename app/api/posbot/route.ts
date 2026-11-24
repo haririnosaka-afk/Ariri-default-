@@ -168,6 +168,20 @@ export async function POST(request: NextRequest) {
   let body: any;
   try { body = await request.json(); }
   catch { return NextResponse.json({ ok: false, error: "Body JSON tidak valid." }, { status: 400 }); }
+  if (body.resource === "sign-upload") {
+    try {
+      const db = dbAdmin();
+      await ensureBucket(db);
+      const kind = ["image", "video", "audio"].includes(String(body.kind)) ? String(body.kind) : "image";
+      const name = String(body.name || "upload").replace(/[^a-zA-Z0-9._-]/g, "_").slice(-80);
+      const path = user.id + "/" + crypto.randomUUID() + "-" + name;
+      const { data, error } = await db.storage.from(BUCKET).createSignedUploadUrl(path);
+      if (error || !data) throw error || new Error("Gagal membuat tautan upload.");
+      return NextResponse.json({ ok: true, bucket: BUCKET, path, token: data.token, kind });
+    } catch (error: any) {
+      return NextResponse.json({ ok: false, error: error.message || "Gagal menyiapkan upload." }, { status: 500 });
+    }
+  }
   if (body.resource !== "generate") return NextResponse.json({ ok: false, error: "Aksi PosBot tidak dikenal." }, { status: 400 });
   const modelId = String(body.model || "");
   const prompt = String(body.prompt || "");
