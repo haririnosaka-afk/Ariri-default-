@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
     if (resource === "settings") return NextResponse.json({ configured: !!process.env.POSBOT_API_KEY });
     if (resource === "models" || resource === "video-models") {
       const models = await getCatalog();
-      return NextResponse.json({ ok: true, provider: "PosBot", models });
+      return NextResponse.json({ ok: true, provider: "PosBot", models: resource === "video-models" ? models.filter(isVideoModel) : models });
     }
     if (resource === "balance") {
       const data = await posbot("/balance");
