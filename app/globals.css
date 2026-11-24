@@ -289,3 +289,11 @@ button:focus-visible,a:focus-visible{outline:2px solid #bba8ff;outline-offset:3p
 .motion-auto-note small{font-size:10px;color:#aeb5c7;line-height:1.5}
 .motion-private-tag{font-size:9px;letter-spacing:1px;font-weight:800;color:#b9a9ff;border:1px solid rgba(177,160,255,.3);padding:4px 6px;border-radius:5px}
 @media(max-width:520px){.motion-identity-grid{gap:8px}.motion-identity-card{padding:9px}.motion-upload{min-height:100px;font-size:10px}.motion-identity-card .media-thumb-tile{height:100px}.motion-auto-note{align-items:flex-start}.motion-private-tag{margin-left:auto}}
+
+/* Motion Control character targeting */
+.motion-choice-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}
+.motion-choice{display:flex;flex-direction:column;gap:5px;align-items:flex-start;text-align:left;padding:13px 12px;border:1px solid var(--line,#34364a);border-radius:13px;background:rgba(255,255,255,.025);color:inherit;cursor:pointer;min-width:0}
+.motion-choice b{font-size:13px}.motion-choice small{font-size:11px;line-height:1.4;color:var(--muted,#9b9caf)}
+.motion-choice.active{border-color:#a99bdc;background:rgba(169,155,220,.12);box-shadow:inset 0 0 0 1px rgba(169,155,220,.25)}
+.motion-provider-note{padding:12px 14px;margin:10px 0 14px;border:1px solid rgba(230,170,80,.35);border-radius:12px;background:rgba(230,170,80,.08);font-size:12px;line-height:1.55;color:var(--muted,#c7c5d0)}
+@media(max-width:560px){.motion-choice-grid{grid-template-columns:1fr}.motion-choice{padding:12px}}
