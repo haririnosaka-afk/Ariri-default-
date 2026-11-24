@@ -156,7 +156,7 @@ const posbotHasRequiredSchema=Array.isArray(selectedPosbotVideoModel?.required_i
 const posbotNeedsVideo=posbotSupportedInputs.includes("video_url")||/(r2v|motion_control|betamotion|kling_30_(std|pro)|upscale_video|watermark_remover)/i.test(posbotModelKey);
 const posbotNeedsImage=posbotSupportedInputs.includes("image_url")||/(seedance|wan_|wan3_|minimax_h3|kling_|betagrok|betamotion|motion_control|grok_imagine_2)/i.test(posbotModelKey);
 const posbotImageRequired=posbotHasRequiredSchema?posbotRequiredInputs.includes("image_url"):/^(seedance_20_mini|wan_30_hd|wan_30_r2v|wan_remix|minimax_h3(?!_r2v)|kling_25|kling_26|kling_30_turbo|betagrok|betamotion|motion_control|kling_30_(std|pro)|wan3_hd|minimax_h3_r2v)/i.test(posbotModelKey);
-const posbotPromptRequired=posbotHasRequiredSchema?posbotRequiredInputs.includes("prompt"):!/(upscale_video|watermark_remover|grok_imagine_15_video_720p|wan_30_hd|wan_remix|minimax_h3|kling_25|kling_26|kling_30_(turbo|std|pro|omni_r2v)|betagrok|betamotion|motion_control|seedance_20_mini)/i.test(posbotModelKey);
+const posbotPromptRequired=posbotHasRequiredSchema?posbotRequiredInputs.includes("prompt"):!/(upscale_video|watermark_remover|grok_imagine_15_video_720p|wan_30_hd|wan_30_r2v|wan_remix|minimax_h3|kling_25|kling_26|kling_30_(turbo|std|pro|omni_r2v)|betagrok|betamotion|motion_control|seedance_20_mini)/i.test(posbotModelKey);
 const posbotSupportsAspect=posbotSupportedInputs.includes("aspect_ratio")||(!posbotSupportedInputs.length&&/(grok_imagine_2|seedance|betagrok|wan3_hd|minimax_h3(?!_r2v))/i.test(posbotModelKey));
 const posbotSupportsNegative=posbotSupportedInputs.includes("negative_prompt");
 const posbotSupportsFps=posbotSupportedInputs.includes("fps")||posbotModelKey==="upscale_video";
@@ -199,7 +199,7 @@ async function generatePosbotVideo() {
  for(const file of posbotImages)files.push(await uploadPosbotFile(file,"image"));
  if(posbotVideo)files.push(await uploadPosbotFile(posbotVideo,"video"));
  const extra:any={};
- if(posbotSupportsMode)extra.mode=posbotImages.length?"i2v":"t2v";
+ if(posbotSupportsMode)extra.mode=posbotVideo?"r2v":posbotImages.length?"i2v":"t2v";
  if(posbotDuration)extra.duration=Number(posbotDuration);else if(/kling_30_(std|pro)/i.test(posbotModelKey))extra.duration=30;if(posbotSupportsFps)extra.fps=Number(posbotFps);
  const d=await posbotRequest({resource:"generate",model:posbotModelKey,prompt,files,aspect_ratio:posbotSupportsAspect?posbotAspectRatio:undefined,negative_prompt:posbotSupportsNegative?(posbotNegativePrompt||undefined):undefined,extra});
  const id=String(d.job_id||d.job_code||"");
