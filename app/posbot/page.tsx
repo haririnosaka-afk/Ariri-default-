@@ -39,8 +39,9 @@ export default function PosBotStudio() {
     if (key.includes("gpt_image_25")) return 16;
     if (key.includes("seedream_5_pro")) return 10;
     if (key === "s2_seedance_25_30s" || key === "seedance_20_15s") return 2;
-    if (key === "seedance_25_30s_strict") return 6;
-    if (key.includes("seedance") || key.includes("wan3")) return 9;
+    if (key === "seedance_20_mini") return 1;
+    if (key === "seedance_20_mini_r2v" || key === "seedance_25_30s_strict") return 6;
+    if (key.includes("seedance") || key.includes("wan3") || key.includes("wan_30_r2v")) return 9;
     if (key.includes("flux_2")) return 6;
     return 4;
   }, [model]);
@@ -110,8 +111,8 @@ export default function PosBotStudio() {
         const signed = await request("/api/posbot", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ resource: "sign-upload", kind: item.kind, name: item.file.name }) });
         const uploaded = await supabase.storage.from("posbot-inputs").uploadToSignedUrl(signed.path, signed.token, item.file, { contentType: item.file.type || "application/octet-stream" });
         if (uploaded.error) throw new Error("Upload " + item.file.name + " gagal: " + uploaded.error.message);
-        const publicUrl = supabase.storage.from("posbot-inputs").getPublicUrl(signed.path).data.publicUrl;
-        return { kind: item.kind, url: publicUrl };
+        const completed = await request("/api/posbot", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ resource: "complete-upload", path: signed.path }) });
+        return { kind: item.kind, url: completed.url };
       }));
       const result = await request("/api/posbot", {
         method: "POST",
