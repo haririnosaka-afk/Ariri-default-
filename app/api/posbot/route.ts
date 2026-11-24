@@ -198,7 +198,7 @@ export async function POST(request: NextRequest) {
     const admin = isAdmin(user.email);
     let charged = false;
     if (!admin) {
-      const { error } = await db.rpc("spend_token", { p_user_id: user.id, p_reference_id: chargeRef, p_cost_units: tokenCost * 2 });
+      const { error } = await db.rpc("spend_token_amount", { p_user_id: user.id, p_reference_id: chargeRef, p_cost_units: tokenCost * 2 });
       if (error) {
         const insufficient = /insufficient_tokens/i.test(error.message);
         throw Object.assign(new Error(insufficient ? "Token KAZAMA tidak cukup untuk model ini." : error.message), { status: insufficient ? 402 : 500 });
