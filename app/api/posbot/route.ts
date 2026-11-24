@@ -297,7 +297,7 @@ export async function POST(request: NextRequest) {
         provider_job_id: jobId,
         provider_task_id: jobId,
         provider: "posbot",
-        status: result.status || "queued",
+        status: dbJobStatus(result.status),
         model: modelId,
         resolution: String(body.resolution || "auto"),
         duration_seconds: Number(body.duration || body.extra?.duration || 0),
