@@ -63,9 +63,35 @@ function isImageModel(model: any) {
   const key = modelKey(model).toLowerCase();
   return category.includes("image") || /^(krea|nano_banana|gpt_image|flux|seedream|face_swap|upscale_4k)/.test(key);
 }
+const FIXED_CUSTOMER_PRICES_IDR: Record<string, number> = {
+  wan_remix: 5000,
+  betamotion_1080p_pro: 6000,
+  seedance_2_15s: 6000,
+  kling_4_15s: 7000,
+  wan3_720p_30s: 8000,
+  wan3_480p_30s: 6000,
+  kling4_720p_20s: 8000,
+  wan3_ref_720p_30s: 8000,
+  kling4_ref_720p_15s: 8000,
+  motion_control_std: 4000,
+  kling_30_pro: 5000,
+  minimax_music3: 1000,
+};
+function fixedCustomerPrice(model: any): number | null {
+  const key = modelKey(model).toLowerCase();
+  if (FIXED_CUSTOMER_PRICES_IDR[key] !== undefined) return FIXED_CUSTOMER_PRICES_IDR[key];
+  const name = String(model?.name || model?.title || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  if (/minimax.*h3.*1080p.*15s|h3.*1080p.*15s/.test(name)) return 5000;
+  if (/minimax.*h3.*720p.*30s|h3.*720p.*30s/.test(name)) return 6000;
+  if (/minimax.*lipsync.*pro.*30s|lipsync.*pro.*30s/.test(name)) return 6000;
+  if (/kling.*3(?:\.0)?.*10s/.test(name)) return 4000;
+  return null;
+}
 function customerTokens(model: any) {
+  const fixedPrice = fixedCustomerPrice(model);
+  if (fixedPrice !== null) return Math.max(0.5, Math.ceil(fixedPrice / TOKEN_PRICE_IDR * 2) / 2);
   const price = providerCost(model);
-  // Harga jual = modal provider + keuntungan 30% dari modal (total 1,3x modal).
+  // Model tanpa harga khusus tetap memakai markup modal provider 30%.
   if (isImageModel(model)) return Math.max(0.5, Math.ceil((price * 1.3) / 1000) * 0.5);
   return Math.max(1, Math.ceil((price * 1.3) / TOKEN_PRICE_IDR));
 }
