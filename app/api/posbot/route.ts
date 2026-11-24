@@ -92,7 +92,7 @@ function isVideoModel(model: any) {
   const category = String(model?.category || model?.type || model?.group || model?.task_type || "").toLowerCase();
   if (category.includes("image") || category.includes("audio") || category.includes("music") || category.includes("tts") || category.includes("voice")) return false;
   if (category.includes("video") || category.includes("motion")) return true;
-  return /^(grok_imagine|grok_imagine_15|betagrok|seedance|wan_|wan3_|minimax_h3(?!_lipsync)|kling_|betamotion|motion_control|upscale_video|watermark_remover)/.test(key) || /video|motion control|upscale video|watermark remover/.test(name);
+  return /^(grok_imagine|grok_imagine_15|betagrok|s2_seedance|seedance|wan_|wan3_|minimax_h3(?!_lipsync)|kling_|betamotion|motion_control|upscale_video|watermark_remover)/.test(key) || /video|motion control|upscale video|watermark remover/.test(name);
 }
 async function getCatalog() {
   const [catalog, statuses] = await Promise.all([
