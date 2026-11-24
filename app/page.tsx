@@ -8,6 +8,114 @@ const ASPECTS=["auto","21:9","16:9","3:2","4:3","5:4","1:1","4:5","3:4","2:3","9
 const SIZES=["0.5K","1K","2K","4K"];
 const IMAGE_SIZES=["landscape_4_3","landscape_16_9","square_hd","square","portrait_4_3","portrait_16_9","auto"];
 const VOICES=["Achernar","Achird","Algenib","Algieba","Alnilam","Aoede","Autonoe","Callirrhoe","Charon","Despina","Enceladus","Erinome","Fenrir","Gacrux","Iapetus","Kore","Laomedeia","Leda","Orus","Puck","Pulcherrima","Rasalgethi","Sadachbia","Sadaltager","Schedar","Sulafat","Umbriel","Vindemiatrix","Zephyr","Zubenelgenubi"];
+const MOTION_CONTROL_BASE=`UNIVERSAL MOTION CONTROL
+
+IDENTITY LOCK
+
+Maintain extremely high identity fidelity throughout the entire video.
+
+Preserve identical facial structure, facial proportions, skin tone, hairstyle, hairline, eyebrows, eyes, nose, lips, ears, jawline, facial expression characteristics, body proportions, and natural appearance.
+
+Never generate a new face.
+Never blend identities.
+Never beautify.
+Never stylize.
+Never change age, ethnicity, body shape, hairstyle, or facial characteristics.
+
+Identity consistency must remain perfectly locked from the first frame until the final frame.
+
+MOTION CONTROL
+
+Replicate the original source motion with frame-by-frame precision.
+
+Preserve every body movement, posture, head movement, shoulder movement, walking speed, body weight shift, hand gestures, finger movement, eye direction, facial expressions, interaction timing, rhythm, and natural micro movements exactly as the source.
+
+Do not invent new actions.
+Do not exaggerate motion.
+Do not modify choreography.
+Do not add additional gestures.
+Do not create unnecessary body movement.
+
+Maintain identical interaction timing between both subjects.
+
+CAMERA LOCK
+
+Preserve the original framing.
+Preserve camera position.
+Preserve camera angle.
+Preserve focal length.
+Preserve perspective.
+Preserve zoom.
+Preserve focus.
+Preserve handheld motion.
+Preserve camera shake.
+Preserve composition.
+Never crop.
+Never recenter.
+Never rotate the camera.
+Never generate a new camera movement.
+
+BODY CONSISTENCY
+
+Maintain stable body proportions throughout the video.
+
+Keep shoulders, neck, torso, arms, elbows, wrists, hands, fingers, hips, legs, knees, feet, and clothing interaction anatomically consistent.
+
+Prevent body morphing.
+Prevent stretching.
+Prevent shrinking.
+Prevent duplicated limbs.
+Prevent broken fingers.
+Prevent warped anatomy.
+
+TEMPORAL CONSISTENCY
+
+Maintain perfect frame-to-frame consistency.
+Preserve facial continuity.
+Preserve body continuity.
+Preserve lighting continuity.
+Preserve texture continuity.
+
+Maintain identical identity across all frames.
+Prevent flickering.
+Prevent face drift.
+Prevent body drift.
+Prevent identity drift.
+Prevent texture flicker.
+Prevent lighting flicker.
+
+STRICT PRESERVATION MODE
+Frame-by-frame motion preservation.
+Prioritize source motion over generation.
+Prioritize source performance over creativity.
+Prioritize source timing over AI interpretation.
+Prioritize temporal consistency over visual enhancement.
+
+Only replace character identity.
+Everything else must remain identical to the original source.
+
+Zero motion hallucination.
+Zero pose hallucination.
+Zero expression hallucination.
+Zero camera hallucination.
+Zero body hallucination.
+Zero identity hallucination.
+Zero face drift.
+Zero body drift.
+Zero pose drift.
+Zero motion drift.
+Zero camera drift.
+Zero identity drift.
+
+OUTPUT
+Photorealistic.
+Natural human motion.
+Stable facial identity.
+Stable body proportions.
+Smooth temporal consistency.
+Frame-perfect identity preservation.
+Preserve every original movement while replacing only the character identities.`;
+
 async function dataUrl(file:File){return await new Promise<string>((resolve,reject)=>{const r=new FileReader();r.onload=()=>typeof r.result==="string"?resolve(r.result):reject(new Error("Gagal membaca file."));r.onerror=()=>reject(new Error("Gagal membaca file."));r.readAsDataURL(file)})}
 async function audioDuration(file:File){return await new Promise<number>((resolve,reject)=>{const url=URL.createObjectURL(file);const a=new Audio();a.preload="metadata";a.onloadedmetadata=()=>{URL.revokeObjectURL(url);resolve(a.duration)};a.onerror=()=>{URL.revokeObjectURL(url);reject(new Error("Tidak dapat membaca durasi sampel audio."))};a.src=url})}
 async function mediaData(file:File){if(file.type.startsWith("image/")){let bmp:ImageBitmap;try{bmp=await createImageBitmap(file)}catch{throw new Error("Coba masukkan ulang foto referensinya atau video referensinya, lalu coba lagi.")}try{const scale=Math.min(1,1600/Math.max(bmp.width,bmp.height));const c=document.createElement("canvas");c.width=Math.round(bmp.width*scale);c.height=Math.round(bmp.height*scale);const ctx=c.getContext("2d");if(!ctx)throw new Error("Tidak dapat memproses gambar.");ctx.drawImage(bmp,0,0,c.width,c.height);const blob=await new Promise<Blob|null>(resolve=>c.toBlob(resolve,"image/jpeg",0.78));if(!blob)throw new Error("Gagal mengompres gambar.");if(blob.size>0.8*1024*1024)throw new Error("Gambar terlalu besar. Pilih gambar lain.");return await dataUrl(new File([blob],"reference.jpg",{type:"image/jpeg"}))}finally{bmp.close()}}if(file.size>3*1024*1024)throw new Error("File video/audio terlalu besar untuk dikirim dari browser. Maksimal sekitar 3 MB per file.");return await dataUrl(file)}
