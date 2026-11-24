@@ -201,7 +201,7 @@ export default function PosBotStudio() {
             <b style={{ fontSize: 13 }}>Provider terpisah</b>
             <p style={muted}>PosBot memakai POSBOT_API_KEY dan saldo PosBot sendiri. NexaBot tetap menggunakan katalog, API key, saldo, dan alur generate yang sudah ada.</p>
             <b style={{ fontSize: 13 }}>Filter model</b>
-            <p style={muted}>Semua model dengan nama atau key mengandung “Omni” otomatis tidak ditampilkan dan tidak dapat dipanggil melalui route ini.</p>
+            <p style={muted}>Semua model Omni Flash dari PosBot otomatis tidak ditampilkan dan tidak dapat dipanggil melalui route ini. Model lain tetap mengikuti katalog PosBot.</p>
           </div>
         </aside>
       </section>
