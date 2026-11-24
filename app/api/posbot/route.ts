@@ -83,7 +83,7 @@ function visibleModel(model: any) {
   const price = providerCost(model);
   if (!Number.isFinite(price) || price <= 0) return false;
   // Keep provider models at or below the Rp7.000 provider-cost ceiling.
-  if (customerTokens(model) * TOKEN_PRICE_IDR > 7000) return false;
+  if (price > 7000) return false;
   return true;
 }
 function isVideoModel(model: any) {
