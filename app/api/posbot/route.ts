@@ -95,7 +95,7 @@ async function getCatalog() {
 async function ensureBucket(db: ReturnType<typeof dbAdmin>) {
   const { data, error } = await db.storage.getBucket(BUCKET);
   if (!data) {
-    const { error: createError } = await db.storage.createBucket(BUCKET, { public: true, fileSizeLimit: 50 * 1024 * 1024 });
+    const { error: createError } = await db.storage.createBucket(BUCKET, { public: false, fileSizeLimit: 50 * 1024 * 1024 });
     if (createError && !/already exists|duplicate/i.test(createError.message)) throw createError;
   }
 }
@@ -180,6 +180,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true, bucket: BUCKET, path, token: data.token, kind });
     } catch (error: any) {
       return NextResponse.json({ ok: false, error: error.message || "Gagal menyiapkan upload." }, { status: 500 });
+    }
+  }
+  if (body.resource === "complete-upload") {
+    try {
+      const path = String(body.path || "");
+      if (!path.startsWith(user.id + "/")) return NextResponse.json({ ok: false, error: "Akses file ditolak." }, { status: 403 });
+      const { data, error } = await dbAdmin().storage.from(BUCKET).createSignedUrl(path, 86400);
+      if (error || !data?.signedUrl) throw error || new Error("Gagal membuat URL media sementara.");
+      return NextResponse.json({ ok: true, url: data.signedUrl });
+    } catch (error: any) {
+      return NextResponse.json({ ok: false, error: error.message || "Gagal menyiapkan URL media." }, { status: 500 });
     }
   }
   if (body.resource !== "generate") return NextResponse.json({ ok: false, error: "Aksi PosBot tidak dikenal." }, { status: 400 });
