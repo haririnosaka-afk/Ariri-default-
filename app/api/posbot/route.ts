@@ -92,7 +92,7 @@ function isVideoModel(model: any) {
   const category = String(model?.category || model?.type || model?.group || model?.task_type || "").toLowerCase();
   if (category.includes("image") || category.includes("audio") || category.includes("music") || category.includes("tts") || category.includes("voice")) return false;
   if (category.includes("video") || category.includes("motion")) return true;
-  return /^(grok_imagine|grok_imagine_15|betagrok|seedance|wan_|wan3_|minimax_h3(?!_lipsync)|kling_|betamotion|motion_control|upscale_video|watermark_remover|ltx_)/.test(key) || /video|motion control|upscale video|watermark remover/.test(name);
+  return /^(grok_imagine|grok_imagine_15|betagrok|seedance|wan_|wan3_|minimax_h3(?!_lipsync)|kling_|betamotion|motion_control|upscale_video|watermark_remover)/.test(key) || /video|motion control|upscale video|watermark remover/.test(name);
 }
 async function getCatalog() {
   const [catalog, statuses] = await Promise.all([
@@ -300,7 +300,7 @@ export async function POST(request: NextRequest) {
         status: result.status || "queued",
         model: modelId,
         resolution: String(body.resolution || "auto"),
-        duration_seconds: Number(body.duration || 0),
+        duration_seconds: Number(body.duration || body.extra?.duration || 0),
         aspect_ratio: String(body.aspect_ratio || "auto"),
         prompt,
         customer_price_idr: Number(model.customer_price_idr),
