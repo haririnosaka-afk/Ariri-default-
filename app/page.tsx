@@ -134,7 +134,7 @@ async function trimAudioTo30Seconds(file:File){
   put(0,"RIFF");v.setUint32(4,36+size,true);put(8,"WAVE");put(12,"fmt ");v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,channels,true);v.setUint32(24,decoded.sampleRate,true);v.setUint32(28,decoded.sampleRate*block,true);v.setUint16(32,block,true);v.setUint16(34,16,true);put(36,"data");v.setUint32(40,size,true);
   const data=Array.from({length:channels},(_,i)=>decoded.getChannelData(i));let o=44;
   for(let i=0;i<frames;i++)for(let ch=0;ch<channels;ch++){const x=Math.max(-1,Math.min(1,data[ch][i]));v.setInt16(o,x<0?x*32768:x*32767,true);o+=2;}
-  return new File([buffer],file.name.replace(/\\.[^.]+$/,"")+"_30s.wav",{type:"audio/wav"});
+  return new File([buffer],file.name.replace(/\.[^.]+$/,"")+"_30s.wav",{type:"audio/wav"});
  }finally{await ctx.close().catch(()=>{});}
 }
 async function api(resource:string,body?:any){const r=await fetch("/api/studio"+(body?"": "?resource="+resource),body?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...body,resource})}:{cache:"no-store"});const d=await r.json().catch(()=>({error:"Respons server tidak valid."}));if(!r.ok||d.ok===false)throw new Error(d.error||"Permintaan gagal ("+r.status+").");return d}
