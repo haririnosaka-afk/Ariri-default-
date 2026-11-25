@@ -104,22 +104,23 @@ function dbJobStatus(value: any) {
 }
 function visibleModel(model: any) {
   const key = modelKey(model);
-  const name = String(model?.name || model?.title || "");
-  const combined = (key + " " + name).toLowerCase();
-  if (!key || key.toLowerCase().includes("omni_flash") || combined.includes("omni flash")) return false;
+  if (!key || key.toLowerCase().includes("omni_flash") || String(model?.name || model?.title || "").toLowerCase().includes("omni flash")) return false;
   const price = providerCost(model);
-  if (!Number.isFinite(price) || price <= 0) return false;
-  // Keep provider models at or below the Rp7.000 provider-cost ceiling.
-  if (price > 7000) return false;
-  return true;
+  // Tampilkan semua model katalog PosBot yang memiliki harga valid.
+  // Harga jual dihitung terpisah; jangan menyembunyikan model hanya karena modalnya di atas batas tertentu.
+  return Number.isFinite(price) && price > 0;
 }
 function isVideoModel(model: any) {
   const key = modelKey(model).toLowerCase();
   const name = String(model?.name || model?.title || "").toLowerCase();
-  const category = String(model?.category || model?.type || model?.group || model?.task_type || "").toLowerCase();
-  if (category.includes("image") || category.includes("audio") || category.includes("music") || category.includes("tts") || category.includes("voice")) return false;
-  if (category.includes("video") || category.includes("motion")) return true;
-  return /seedance/.test(key + " " + name) || /^(grok_imagine|grok_imagine_15|betagrok|s2_seedance|wan_|wan3_|minimax_h3(?!_lipsync)|kling_|betamotion|motion_control|upscale_video|watermark_remover)/.test(key) || /video|motion control|upscale video|watermark remover/.test(name);
+  const category = [
+    model?.category, model?.type, model?.group, model?.task_type,
+    model?.model_type, model?.task, model?.endpoint, model?.capability
+  ].filter(Boolean).join(" ").toLowerCase();
+  if (/image|audio|music|tts|voice|speech|upscale_image|face.?swap/.test(category)) return false;
+  if (/video|motion|lip.?sync/.test(category)) return true;
+  const combined = key + " " + name;
+  return /seedance|grok.?imagine|betagrok|wan.?\d|minimax.?h3|kling|betamotion|motion.?control|video|lip.?sync|lipsync|hailuo|veo|omni.?flash|upscale.?video|watermark.?remover|vidu|happyhorse/.test(combined);
 }
 async function getCatalog() {
   const [catalog, statuses] = await Promise.all([
