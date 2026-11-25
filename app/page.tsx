@@ -163,7 +163,7 @@ const posbotPromptRequired=posbotHasRequiredSchema?posbotRequiredInputs.includes
 const posbotSupportsAspect=posbotSupportedInputs.includes("aspect_ratio")||(!posbotSupportedInputs.length&&/(grok_imagine_2|seedance|betagrok|wan3_hd|minimax_h3(?!_r2v))/i.test(posbotModelKey));
 const posbotSupportsNegative=posbotSupportedInputs.includes("negative_prompt");
 const posbotSupportsFps=posbotSupportedInputs.includes("fps")||posbotModelKey==="upscale_video";
-const posbotSupportsMode=posbotSupportedInputs.includes("mode")||/^(s2_)?seedance_(25_30s|20_15s)/i.test(posbotModelKey)||/^omni_flash_(11_720p|12_1080p|11|12)$/i.test(posbotModelKey);
+const posbotSupportsMode=posbotSupportedInputs.includes("mode")||/^(s2_)?seedance_(25_30s(_strict)?|20_15s|25_lite|lite_30s)/i.test(posbotModelKey)||/^omni_flash_(11_720p|12_1080p|11|12)$/i.test(posbotModelKey);
 const posbotModeOptions=posbotSupportsMode?(/^omni_flash_/i.test(posbotModelKey)?["auto","t2v","sfv","i2v","r2v"]:/seedance_25_30s/i.test(posbotModelKey)?["auto","t2v","i2v","f2f"]:["auto","t2v","i2v"]):[];
 const posbotEffectiveMode=posbotMode!=="auto"?posbotMode:posbotVideo?"r2v":posbotImages.length?"i2v":"t2v";
 const posbotModeNeedsImage=["sfv","i2v","f2f"].includes(posbotEffectiveMode);
