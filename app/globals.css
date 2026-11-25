@@ -495,3 +495,18 @@ button:focus-visible,a:focus-visible{outline:2px solid #bba8ff;outline-offset:3p
 @media(max-width:760px){
   .workgrid .uploadbox.compact{width:70px!important;min-width:70px!important;max-width:70px!important;height:70px!important;min-height:70px!important}
 }
+
+
+/* Premium package highlights for named top-up tiers */
+.pricecard.package-starter,.pricecard.package-pro,.pricecard.package-plus,.pricecard.package-creator{padding-top:23px!important;border-width:1px!important}
+.pricecard .package-ribbon{display:inline-flex;align-items:center;justify-content:center;min-height:25px;padding:5px 11px;border-radius:7px;font:900 10px/1 Manrope,system-ui,sans-serif;letter-spacing:1.15px;color:#11121a;box-shadow:0 5px 18px rgba(0,0,0,.22)}
+.pricecard.package-starter{border-color:rgba(105,190,255,.58)!important;background:radial-gradient(ellipse at 90% 0%,rgba(70,157,255,.23),transparent 55%),linear-gradient(150deg,#1d3047,#111a2a)!important}
+.pricecard.package-starter .package-ribbon{background:linear-gradient(110deg,#b8e3ff,#65b8ff)}
+.pricecard.package-pro{border-color:rgba(177,151,255,.68)!important;background:radial-gradient(ellipse at 90% 0%,rgba(147,112,255,.3),transparent 55%),linear-gradient(150deg,#30254e,#171a2b)!important}
+.pricecard.package-pro .package-ribbon{background:linear-gradient(110deg,#e0d5ff,#a58aff)}
+.pricecard.package-plus{border-color:rgba(100,226,190,.62)!important;background:radial-gradient(ellipse at 90% 0%,rgba(72,211,166,.24),transparent 55%),linear-gradient(150deg,#1c3c39,#111e25)!important}
+.pricecard.package-plus .package-ribbon{background:linear-gradient(110deg,#c4ffeb,#67dfb7)}
+.pricecard.package-creator{border-color:rgba(255,199,105,.82)!important;background:radial-gradient(ellipse at 90% 0%,rgba(255,181,72,.3),transparent 55%),linear-gradient(150deg,#49351f,#211b19)!important;box-shadow:0 12px 34px rgba(219,151,61,.14),inset 0 1px rgba(255,226,166,.12)!important}
+.pricecard.package-creator .package-ribbon{background:linear-gradient(110deg,#fff0bd,#e6ad4d)}
+.pricecard.package-creator>b{color:#ffe1a4!important;text-shadow:0 2px 18px rgba(255,191,91,.2)!important}
+@media(max-width:520px){.pricecard .package-ribbon{font-size:9px;min-height:23px;padding:5px 9px}}
