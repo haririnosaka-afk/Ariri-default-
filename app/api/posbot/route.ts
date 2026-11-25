@@ -166,8 +166,8 @@ async function getCatalog() {
       status: status || model.status || "active",
     };
   }).filter((model: any) => !["maintenance", "disabled", "inactive"].includes(String(model.status).toLowerCase()))
-    // KAZAMA public video catalog: keep only the requested Seedance 2.0 model.
-    .filter((model: any) => model.model_key === "seedance_20_15s");
+    // KAZAMA Video Gen catalog: expose only MiniMax LipSync Pro (30s).
+    .filter((model: any) => /minimax.*lipsync.*pro|lipsync.*pro.*minimax/i.test(String(model.model_key||"")+" "+String(model.name||model.title||"")));
 }
 async function ensureBucket(db: ReturnType<typeof dbAdmin>) {
   const { data, error } = await db.storage.getBucket(BUCKET);
@@ -207,7 +207,8 @@ export async function GET(request: NextRequest) {
     }
     if (resource === "settings") return NextResponse.json({ configured: !!process.env.POSBOT_API_KEY });
     if (resource === "models" || resource === "video-models") {
-      return NextResponse.json({ ok: true, provider: "PosBot", models: [] });
+      const models = await getCatalog();
+      return NextResponse.json({ ok: true, provider: "PosBot", models });
     }
     if (resource === "balance") {
       const data = await posbot("/balance");
