@@ -167,7 +167,7 @@ const selectedPosbotVideoModel=videoModels.find((item:any)=>item.model_key===sel
 const posbotModelKey=String(selectedPosbotVideoModel?.model_key||"");
 const posbotLipSyncPro=/minimax.*lipsync.*pro|lipsync.*pro.*minimax/i.test(posbotModelKey+" "+String(selectedPosbotVideoModel?.name||selectedPosbotVideoModel?.title||""));
 const posbotSeedance2_15=/seedance/.test(posbotModelIdentity)&&/(seedance_?2(?:_?0)?(?:_?15s)?|seedance_2_15s)/.test(posbotModelIdentity)&&!/2_?5|25|2\.5/.test(posbotModelIdentity);
-const posbotSeedance2MiniOmni=/seedance/.test(posbotModelIdentity)&&/mini/.test(posbotModelIdentity)&&/omni/.test(posbotModelIdentity)&&/15s|15/.test(posbotModelIdentity);
+const posbotSeedance2MiniOmni=/seedance/.test(posbotModelIdentity)&&/mini/.test(posbotModelIdentity)&&/(2_?0|20)/.test(posbotModelIdentity);
 const posbotInputSchema=selectedPosbotVideoModel?.input_schema||selectedPosbotVideoModel?.schema||{};
 const posbotSchemaFields=posbotInputSchema?.properties||{};
 const posbotRequiredInputs=Array.isArray(selectedPosbotVideoModel?.required_inputs)?selectedPosbotVideoModel.required_inputs.map((x:any)=>String(x)):Array.isArray(selectedPosbotVideoModel?.inputs_required)?selectedPosbotVideoModel.inputs_required.map((x:any)=>String(x)):Array.isArray(posbotInputSchema?.required)?posbotInputSchema.required.map((x:any)=>String(x)):[];
