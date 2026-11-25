@@ -143,7 +143,7 @@ function isVideoModel(model: any) {
   ].filter(Boolean).map((value: any) => Array.isArray(value) ? value.join(" ") : typeof value === "object" ? JSON.stringify(value) : String(value)).join(" ").toLowerCase();
   const combined = key + " " + name + " " + metadata + " " + inputNames;
   if (/audio|music|tts|voice|speech|face[ _-]?swap|upscale[ _-]?image|image[ _-]?generation/.test(metadata + " " + key)) return false;
-  return (/\\bi2v\\b|\\bt2v\\b|\\br2v\\b|image[ _-]?to[ _-]?video|text[ _-]?to[ _-]?video|video[ _-]?to[ _-]?video|reference[ _-]?to[ _-]?video|video|motion|lip[ _-]?sync|lipsync/).test(combined);
+  return (/\bi2v\b|\bt2v\b|\br2v\b|image[ _-]?to[ _-]?video|text[ _-]?to[ _-]?video|video[ _-]?to[ _-]?video|reference[ _-]?to[ _-]?video|video|motion|lip[ _-]?sync|lipsync/).test(combined);
 }
 async function getCatalog() {
   const [catalog, statuses] = await Promise.all([
@@ -300,7 +300,12 @@ export async function POST(request: NextRequest) {
     const models = await getCatalog();
     const model = models.find((item: any) => item.model_key === modelId);
     if (!model) return NextResponse.json({ ok: false, error: "Model tidak aktif atau tidak tersedia di katalog PosBot KAZAMA." }, { status: 400 });
-    const maxPrompt = Number(model.max_prompt_length || model.max_prompt || 8000);
+    const maxPrompt = Number(model.max_prompt_length || model.max_prompt || (
+      /^(wan_30_hd|wan_30_r2v)$/.test(modelId) ? 10000 :
+      /seedance/.test(modelId) ? 8000 :
+      /^(grok_imagine_2|minimax_h3)/.test(modelId) ? 5000 :
+      2500
+    ));
     if (prompt.length > maxPrompt) return NextResponse.json({ ok: false, error: "Prompt model ini maksimal " + maxPrompt.toLocaleString("id-ID") + " karakter." }, { status: 400 });
     const db = dbAdmin();
     const tokenCost = Number(model.customer_tokens);
