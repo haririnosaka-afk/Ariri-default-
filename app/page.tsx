@@ -165,6 +165,9 @@ const activeJobs=jobs.filter(j=>!["done","completed","success","failed","expired
 const motionControlModels:any[]=[];const videoGenerationModels=videoModels.filter((item:any)=>item.model_key==="seedance_20_15s");const categoryModels=videoGenerationModels;const usingPosbotVideo=selectedVideoModel.startsWith("posbot:");
 const selectedPosbotVideoModel=videoModels.find((item:any)=>item.model_key===selectedVideoModel.slice(7));
 const posbotModelKey=String(selectedPosbotVideoModel?.model_key||"");
+const posbotModelIdentity=(posbotModelKey+" "+String(selectedPosbotVideoModel?.name||selectedPosbotVideoModel?.title||""))
+  .toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"");
+const posbotIdentityCompact=posbotModelIdentity.replace(/_/g,"");
 const posbotKling4_20s=/kling/.test((posbotModelKey+" "+String(selectedPosbotVideoModel?.name||selectedPosbotVideoModel?.title||"")).toLowerCase().replace(/[^a-z0-9]+/g,"_"))&&/(?:^|_)4(?:_|$)/.test((posbotModelKey+" "+String(selectedPosbotVideoModel?.name||selectedPosbotVideoModel?.title||"")).toLowerCase().replace(/[^a-z0-9]+/g,"_"))&&/20s/.test((posbotModelKey+" "+String(selectedPosbotVideoModel?.name||selectedPosbotVideoModel?.title||"")).toLowerCase().replace(/[^a-z0-9]+/g,"_"));
 const posbotLipSyncPro=/minimax.*lipsync.*pro|lipsync.*pro.*minimax/i.test(posbotModelKey+" "+String(selectedPosbotVideoModel?.name||selectedPosbotVideoModel?.title||""));
 const posbotSeedance2_15=/seedance/.test(posbotModelIdentity)&&/(seedance_?2(?:_?0)?(?:_?15s)?|seedance_2_15s)/.test(posbotModelIdentity)&&!/2_?5|25|2\.5/.test(posbotModelIdentity);
@@ -209,10 +212,6 @@ const posbotDocumentedImageLimits:Record<string,number>={
 };
 // Prefer the published per-model limits over incomplete/stale catalog metadata (which may incorrectly say 1).
 // Normalize both provider keys and display names: catalog labels often use "2.5", spaces, or aliases.
-const posbotModelIdentity=(posbotModelKey+" "+String(selectedPosbotVideoModel?.name||selectedPosbotVideoModel?.title||""))
-  .toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"");
-const posbotIdentityCompact=posbotModelIdentity.replace(/_/g,"");
-
 const posbotInferredImageLimit=
   /seedance/.test(posbotModelIdentity)&&/r2v/.test(posbotModelIdentity)&&/(2_5|25|2_0|20)/.test(posbotModelIdentity)?9:
   /seedance/.test(posbotModelIdentity)&&/r2v/.test(posbotModelIdentity)?6:
