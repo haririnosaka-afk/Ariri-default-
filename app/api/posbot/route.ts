@@ -68,6 +68,8 @@ const FIXED_CUSTOMER_PRICES_IDR: Record<string, number> = {
   betamotion_1080p_pro: 6000,
   seedance_2_15s: 4000,
   seedance_20_15s: 4000,
+  seedance_20_mini: 4000,
+  seedance_2_mini_omni_15s: 4000,
   kling_4_15s: 7000,
   wan3_720p_30s: 8000,
   wan3_480p_30s: 6000,
@@ -85,6 +87,7 @@ function fixedCustomerPrice(model: any): number | null {
   if (/minimax.*h3.*1080p.*15s|h3.*1080p.*15s/.test(name)) return 5000;
   if (/minimax.*h3.*720p.*30s|h3.*720p.*30s/.test(name)) return 6000;
   if (/minimax.*lipsync.*pro.*30s|lipsync.*pro.*30s/.test(name)) return 5000;
+  if (/seedance.*2.*mini.*omni.*15s/.test(name)) return 4000;
   if (/seedance.*2(?:[ _.-]?0)?.*15s/.test(name) && !/2[ _.-]?5|25|2\.5/.test(name)) return 4000;
   if (/kling.*3(?:\.0)?.*10s/.test(name)) return 4000;
   return null;
@@ -168,8 +171,13 @@ async function getCatalog() {
       status: status || model.status || "active",
     };
   }).filter((model: any) => !["maintenance", "disabled", "inactive"].includes(String(model.status).toLowerCase()))
-    // KAZAMA Video Gen catalog: expose only MiniMax LipSync Pro (30s).
-    .filter((model: any) => /minimax.*lipsync.*pro|lipsync.*pro.*minimax/i.test(String(model.model_key||"")+" "+String(model.name||model.title||"")) || (/seedance/.test(String(model.model_key||"")+" "+String(model.name||model.title||"")) && /2(?:[ _.-]?0)?.*15s/i.test(String(model.model_key||"")+" "+String(model.name||model.title||"")) && !/2[ _.-]?5|25|2\.5/i.test(String(model.model_key||"")+" "+String(model.name||model.title||""))));
+    // KAZAMA Video Gen catalog: expose MiniMax LipSync Pro, Seedance 2 (15s), and Seedance 2 Mini Omni (15s).
+    .filter((model: any) => {
+      const identity = String(model.model_key||"")+" "+String(model.name||model.title||"");
+      return /minimax.*lipsync.*pro|lipsync.*pro.*minimax/i.test(identity)
+        || (/seedance/.test(identity) && /mini/.test(identity) && /omni/.test(identity) && /2/.test(identity) && /15s/i.test(identity))
+        || (/seedance/.test(identity) && /2(?:[ _.-]?0)?.*15s/i.test(identity) && !/2[ _.-]?5|25|2\.5/i.test(identity));
+    });
 }
 async function ensureBucket(db: ReturnType<typeof dbAdmin>) {
   const { data, error } = await db.storage.getBucket(BUCKET);
