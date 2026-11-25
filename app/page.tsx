@@ -279,7 +279,7 @@ async function generatePosbotVideo() {
  if(posbotSeedance2_15&&prompt.trim()&&posbotPromptFile)throw new Error("Pilih salah satu: prompt teks atau file .txt.");
  if(posbotSeedance2_15&&prompt.length>2000)throw new Error("Prompt maksimal 2.000 karakter.");
  if(posbotSeedance2_15&&posbotImages.some(file=>file.size>10*1024*1024))throw new Error("Setiap foto maksimal 10 MB.");
- if(posbotPromptRequired&&!prompt.trim())throw new Error("Prompt wajib diisi untuk model ini.");
+ if(posbotPromptRequired&&!prompt.trim()&&!posbotPromptFile)throw new Error("Prompt wajib diisi atau unggah file .txt.");
  if(posbotLipSyncPro&&!posbotAudio)throw new Error("Upload 1 file audio suara terlebih dahulu untuk Minimax LipSync Pro (30s).");
  if(posbotPromptRequired&&prompt.length>posbotPromptLimit)throw new Error("Prompt maksimal "+posbotPromptLimit+" karakter untuk model ini.");
  if(!posbotSeedance2MiniOmni&&(posbotVideoRequired||posbotModeNeedsVideo)&&!posbotVideo)throw new Error("Mode/model ini wajib menggunakan video referensi.");
