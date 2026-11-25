@@ -113,14 +113,24 @@ function visibleModel(model: any) {
 function isVideoModel(model: any) {
   const key = modelKey(model).toLowerCase();
   const name = String(model?.name || model?.title || "").toLowerCase();
-  const category = [
+  const schema = model?.input_schema || model?.schema || {};
+  const inputNames = [
+    ...Object.keys(schema?.properties || {}),
+    ...(Array.isArray(model?.required_inputs) ? model.required_inputs : []),
+    ...(Array.isArray(model?.inputs_required) ? model.inputs_required : []),
+    ...(Array.isArray(model?.optional_inputs) ? model.optional_inputs : []),
+    ...(Array.isArray(model?.inputs_optional) ? model.inputs_optional : []),
+  ].join(" ").toLowerCase();
+  const metadata = [
     model?.category, model?.type, model?.group, model?.task_type,
-    model?.model_type, model?.task, model?.endpoint, model?.capability
-  ].filter(Boolean).join(" ").toLowerCase();
-  if (/image|audio|music|tts|voice|speech|upscale_image|face.?swap/.test(category)) return false;
-  if (/video|motion|lip.?sync/.test(category)) return true;
-  const combined = key + " " + name;
-  return /seedance|grok.?imagine|betagrok|wan.?\d|minimax.?h3|kling|betamotion|motion.?control|video|lip.?sync|lipsync|hailuo|veo|omni.?flash|upscale.?video|watermark.?remover|vidu|happyhorse/.test(combined);
+    model?.model_type, model?.task, model?.endpoint, model?.capability,
+    model?.capabilities, model?.tasks, model?.supported_tasks, model?.modalities,
+  ].filter(Boolean).map((value: any) => Array.isArray(value) ? value.join(" ") : typeof value === "object" ? JSON.stringify(value) : String(value)).join(" ").toLowerCase();
+  const combined = key + " " + name + " " + metadata + " " + inputNames;
+  // Explicit video workflows take priority: image-to-video models commonly mention both image and video.
+  if (/image[ _-]?to[ _-]?video|text[ _-]?to[ _-]?video|video[ _-]?to[ _-]?video|reference[ _-]?to[ _-]?video|video|motion|lip[ _-]?sync|lipsync/.test(combined)) return true;
+  if (/audio|music|tts|voice|speech|upscale[ _-]?image|face[ _-]?swap|image[ _-]?generation/.test(metadata + " " + key)) return false;
+  return /seedance|grok.?imagine|betagrok|wan.?\d|minimax.?h3|kling|betamotion|motion.?control|hailuo|veo|upscale.?video|watermark.?remover|vidu|happyhorse/.test(key + " " + name);
 }
 async function getCatalog() {
   const [catalog, statuses] = await Promise.all([
@@ -191,7 +201,7 @@ export async function GET(request: NextRequest) {
         const reasons = [];
         if (!key) reasons.push("missing_model_key");
         if (!Number.isFinite(price) || price <= 0) reasons.push("missing_or_invalid_price");
-        if (price > 7000) reasons.push("provider_cost_over_7000");
+        
         if (["maintenance", "disabled", "inactive"].includes(status)) reasons.push("status_" + status);
         if (!isVideoModel(model)) reasons.push("not_detected_as_video");
         return { model_key: key, name: String(model.name || model.title || key), provider_cost_idr: price, status, visible: visibleModel(model) && isVideoModel(model) && !["maintenance", "disabled", "inactive"].includes(status), excluded_reasons: reasons };
