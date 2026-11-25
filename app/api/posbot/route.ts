@@ -138,6 +138,7 @@ async function getCatalog() {
       price: providerCost(model),
       customer_tokens: customerTokens(model),
       customer_price_idr: customerTokens(model) * TOKEN_PRICE_IDR,
+      customer_credits: Math.round(customerTokens(model) * 200),
       status: status || model.status || "active",
     };
   }).filter((model: any) => !["maintenance", "disabled", "inactive"].includes(String(model.status).toLowerCase()));
