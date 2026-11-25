@@ -177,17 +177,8 @@ async function getCatalog() {
       status: status || model.status || "active",
     };
   }).filter((model: any) => !["maintenance", "disabled", "inactive"].includes(String(model.status).toLowerCase()))
-    // KAZAMA Video Gen catalog: expose MiniMax LipSync Pro, Seedance 2 (15s), and Seedance 2 Mini Omni (15s).
-    .filter((model: any) => {
-      const identity = String(model.model_key||"")+" "+String(model.name||model.title||"");
-      return /minimax.*lipsync.*pro|lipsync.*pro.*minimax/i.test(identity)
-        || String(model.model_key||"").toLowerCase()==="kling_30_turbo"
-        || /kling.*3(?:\\.0)?.*10s/i.test(identity)
-        || ["kling4_720p_20s","kling_4_20s"].includes(String(model.model_key||"").toLowerCase())
-        || /kling.*4.*20s/i.test(identity)
-        || (String(model.model_key||"").toLowerCase()==="seedance_20_mini" || (/seedance/.test(identity) && /mini/.test(identity) && /omni/.test(identity) && /2/.test(identity)))
-        || (/seedance/.test(identity) && /2(?:[ _.-]?0)?.*15s/i.test(identity) && !/2[ _.-]?5|25|2\.5/i.test(identity));
-    });
+    // Full live PosBot video catalog; the frontend separates Video Gen and Motion Control.
+    .filter((model: any) => isVideoModel(model) || String(modelKey(model)).toLowerCase() === "watermark_remover");
 }
 async function ensureBucket(db: ReturnType<typeof dbAdmin>) {
   const { data, error } = await db.storage.getBucket(BUCKET);
@@ -337,7 +328,7 @@ export async function POST(request: NextRequest) {
           urls[kind].push(await uploadDataUrl(db, user.id, item, i));
         }
       }
-      const payload: any = { model: modelId };
+      const payload: any = { model: modelId, notify_telegram: false };
       if (prompt) payload.prompt = prompt;
       if (urls.image.length) {
         payload.image_url = urls.image[0];
