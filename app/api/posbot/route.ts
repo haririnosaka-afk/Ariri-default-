@@ -165,7 +165,9 @@ async function getCatalog() {
       customer_credits: Math.round(customerTokens(model) * 200),
       status: status || model.status || "active",
     };
-  }).filter((model: any) => !["maintenance", "disabled", "inactive"].includes(String(model.status).toLowerCase()));
+  }).filter((model: any) => !["maintenance", "disabled", "inactive"].includes(String(model.status).toLowerCase()))
+    // KAZAMA public video catalog: keep only the requested Seedance 2.0 model.
+    .filter((model: any) => model.model_key === "seedance_20_15s");
 }
 async function ensureBucket(db: ReturnType<typeof dbAdmin>) {
   const { data, error } = await db.storage.getBucket(BUCKET);
