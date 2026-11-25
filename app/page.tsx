@@ -193,12 +193,12 @@ const posbotModelIdentity=(posbotModelKey+" "+String(selectedPosbotVideoModel?.n
   .toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"");
 const posbotIdentityCompact=posbotModelIdentity.replace(/_/g,"");
 const posbotInferredImageLimit=
-  /seedance.*(?:25.*30s.*r2v|r2v.*30s)/.test(posbotModelIdentity)?9:
-  /seedance.*(?:20.*mini.*r2v|2_0.*mini.*r2v)/.test(posbotModelIdentity)?6:
-  /seedance.*(?:25.*30s.*strict|25.*lite|lite.*30s|strict)/.test(posbotModelIdentity)?6:
-  /seedance.*(?:20.*mini|2_0.*mini)/.test(posbotModelIdentity)?1:
-  /seedance.*(?:25.*30s|20.*15s|2_5|2_0)/.test(posbotModelIdentity)?2:
-  /wan.*3.*hd|wan3hd/.test(posbotIdentityCompact)?9:
+  /seedance/.test(posbotModelIdentity)&&/r2v/.test(posbotModelIdentity)&&/(2_5|25|2_0|20)/.test(posbotModelIdentity)?9:
+  /seedance/.test(posbotModelIdentity)&&/r2v/.test(posbotModelIdentity)?6:
+  /seedance/.test(posbotModelIdentity)&&/(strict|lite)/.test(posbotModelIdentity)?6:
+  /seedance/.test(posbotModelIdentity)&&/(2_0|20).*mini/.test(posbotModelIdentity)?1:
+  /seedance/.test(posbotModelIdentity)?2:
+  /wan.*3.*hd/.test(posbotModelIdentity)?9:
   /betagrok/.test(posbotIdentityCompact)?4:
   /omni.*(?:r2v|sfv)/.test(posbotIdentityCompact)?1:
   /omni.*(?:i2v|flash11|flash12|11_720p|12_1080p)/.test(posbotIdentityCompact)?3:
