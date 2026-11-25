@@ -175,7 +175,7 @@ async function getCatalog() {
     .filter((model: any) => {
       const identity = String(model.model_key||"")+" "+String(model.name||model.title||"");
       return /minimax.*lipsync.*pro|lipsync.*pro.*minimax/i.test(identity)
-        || (/seedance/.test(identity) && /mini/.test(identity) && /omni/.test(identity) && /2/.test(identity) && /15s/i.test(identity))
+        || (String(model.model_key||"").toLowerCase()==="seedance_20_mini" || (/seedance/.test(identity) && /mini/.test(identity) && /omni/.test(identity) && /2/.test(identity)))
         || (/seedance/.test(identity) && /2(?:[ _.-]?0)?.*15s/i.test(identity) && !/2[ _.-]?5|25|2\.5/i.test(identity));
     });
 }
