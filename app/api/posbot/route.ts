@@ -128,7 +128,7 @@ function isVideoModel(model: any) {
   ].filter(Boolean).map((value: any) => Array.isArray(value) ? value.join(" ") : typeof value === "object" ? JSON.stringify(value) : String(value)).join(" ").toLowerCase();
   const combined = key + " " + name + " " + metadata + " " + inputNames;
   // Explicit video workflows take priority: image-to-video models commonly mention both image and video.
-  if (/image[ _-]?to[ _-]?video|text[ _-]?to[ _-]?video|video[ _-]?to[ _-]?video|reference[ _-]?to[ _-]?video|video|motion|lip[ _-]?sync|lipsync/.test(combined)) return true;
+  if (/\bi2v\b|\bt2v\b|\br2v\b|image[ _-]?to[ _-]?video|text[ _-]?to[ _-]?video|video[ _-]?to[ _-]?video|reference[ _-]?to[ _-]?video|video|motion|lip[ _-]?sync|lipsync/.test(combined)) return true;
   if (/audio|music|tts|voice|speech|upscale[ _-]?image|face[ _-]?swap|image[ _-]?generation/.test(metadata + " " + key)) return false;
   return /seedance|grok.?imagine|betagrok|wan.?\d|minimax.?h3|kling|betamotion|motion.?control|hailuo|veo|upscale.?video|watermark.?remover|vidu|happyhorse/.test(key + " " + name);
 }
