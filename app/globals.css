@@ -871,3 +871,43 @@ body{
  .connection{max-width:70px}.toolgrid{grid-template-columns:1fr}
  .toolcard{min-height:140px}
 }
+
+
+
+/* Navigation and dashboard information architecture */
+.navgroup{margin:9px 0 2px}
+.navgroup .navcaption{margin:15px 12px 7px;padding-top:4px}
+.overview-nav{margin:7px 0 4px}
+.sidebar{overflow-y:auto;overscroll-behavior:contain}
+.sidebar::-webkit-scrollbar{width:4px}
+.sidebar::-webkit-scrollbar-thumb{background:rgba(158,143,211,.25);border-radius:10px}
+.dashboard-tools{grid-template-columns:repeat(3,minmax(0,1fr))}
+.dashboard-tools .toolcard{min-height:190px}
+.dashboard-tools .toolcard p{min-height:58px}
+.dashboard-tools .toolcard>span{display:flex;align-items:center;justify-content:space-between;margin-top:14px}
+.model-category-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.model-selected-info{
+ display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 14px;
+ padding:15px 16px;margin-top:13px;border-radius:12px;
+ border:1px solid rgba(176,155,245,.22);
+ background:linear-gradient(115deg,rgba(113,88,184,.15),rgba(20,35,51,.78));
+}
+.model-selected-info>div{display:flex;flex-direction:column;gap:5px}
+.model-selected-info>div span{font-size:8px;letter-spacing:1.4px;color:#a99cda;font-weight:850}
+.model-selected-info>div b{font-size:12px;color:#f4f1ff}
+.model-selected-info>strong{font-size:15px;color:#d4c7ff;text-align:right}
+.model-selected-info>small{grid-column:2;color:#8e9cb1;text-align:right;font-size:9px}
+.model-helper{display:block;color:#8f9eb5;font-size:9px;line-height:1.7;margin-top:8px}
+@media(max-width:1100px){.dashboard-tools{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){
+ .dashboard-tools{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .dashboard-tools .toolcard{min-height:180px}
+ .dashboard-tools .toolcard p{min-height:66px}
+ .navgroup .navcaption{margin-top:12px}
+}
+@media(max-width:420px){
+ .dashboard-tools{grid-template-columns:1fr}
+ .dashboard-tools .toolcard{min-height:145px}
+ .dashboard-tools .toolcard p{min-height:0}
+ .model-selected-info{grid-template-columns:1fr auto}
+}
