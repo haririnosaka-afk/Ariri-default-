@@ -73,7 +73,8 @@ const FIXED_CUSTOMER_PRICES_IDR: Record<string, number> = {
   kling_4_15s: 7000,
   wan3_720p_30s: 8000,
   wan3_480p_30s: 6000,
-  kling4_720p_20s: 8000,
+  kling4_720p_20s: 6500,
+  kling_4_20s: 6500,
   wan3_ref_720p_30s: 8000,
   kling4_ref_720p_15s: 8000,
   motion_control_std: 4000,
@@ -91,6 +92,7 @@ function fixedCustomerPrice(model: any): number | null {
   if (/seedance.*2.*mini.*omni.*15s/.test(name)) return 4000;
   if (/seedance.*2(?:[ _.-]?0)?.*15s/.test(name) && !/2[ _.-]?5|25|2\.5/.test(name)) return 4000;
   if (/kling.*3(?:\.0)?.*10s/.test(name)) return 4000;
+  if (/kling.*4.*20s/.test(name)) return 6500;
   return null;
 }
 function customerTokens(model: any) {
@@ -113,7 +115,7 @@ function visibleModel(model: any) {
   if (!key) return false;
   // Seedance 2 Mini Omni memakai harga jual tetap KAZAMA; beberapa katalog provider
   // tidak mengirim field harga untuk model ini, jadi jangan sembunyikan model tersebut.
-  if (["seedance_20_mini", "kling_30_turbo"].includes(key.toLowerCase())) return true;
+  if (["seedance_20_mini", "kling_30_turbo", "kling4_720p_20s", "kling_4_20s"].includes(key.toLowerCase()) || /kling.*4.*20s/i.test(String(model?.name||model?.title||""))) return true;
   const price = providerCost(model);
   // Model lain hanya tampil jika provider mengirim tarif valid.
   return Number.isFinite(price) && price > 0;
@@ -123,7 +125,7 @@ const POSBOT_VIDEO_KEYS = new Set([
   "s2_seedance_25_30s","seedance_25_30s","seedance_30s","s2_25_30s",
   "seedance_25_30s_strict","seedance_lite_30s","seedance_25_lite","seedance_20_15s","seedance_20_15s_legacy","seedance_20_mini",
   "wan_30_hd","wan_30_720p","wan_remix_720p","wan3_hd_15s","wan3_hd_30s","wan3_hd","wan_3_hd_15s","wan_3_hd_30s",
-  "minimax_h3","minimax_h3_720p","kling_25_turbo","kling_26_pro_1080p","kling_26_i2v","kling_30_turbo",
+  "minimax_h3","minimax_h3_720p","kling_25_turbo","kling_26_pro_1080p","kling_26_i2v","kling_30_turbo","kling4_720p_20s","kling_4_20s",
   "omni_flash_t2v","omni_flash_sfv","omni_flash_i2v","omni_flash_r2v","omni_flash_11_720p","omni_flash_12_1080p","omni_flash_11","omni_11","omni_flash_12","omni_12",
   "minimax_lipsync","ltx_lipsync",
   "betamotion_hd","betamotion_720p","rh_bmhd","betamotion_1080p","betamotion","betamotion_1080p_pro","betamotion_60fps","betamotion_1080p_max",
@@ -181,6 +183,8 @@ async function getCatalog() {
       return /minimax.*lipsync.*pro|lipsync.*pro.*minimax/i.test(identity)
         || String(model.model_key||"").toLowerCase()==="kling_30_turbo"
         || /kling.*3(?:\\.0)?.*10s/i.test(identity)
+        || ["kling4_720p_20s","kling_4_20s"].includes(String(model.model_key||"").toLowerCase())
+        || /kling.*4.*20s/i.test(identity)
         || (String(model.model_key||"").toLowerCase()==="seedance_20_mini" || (/seedance/.test(identity) && /mini/.test(identity) && /omni/.test(identity) && /2/.test(identity)))
         || (/seedance/.test(identity) && /2(?:[ _.-]?0)?.*15s/i.test(identity) && !/2[ _.-]?5|25|2\.5/i.test(identity));
     });
