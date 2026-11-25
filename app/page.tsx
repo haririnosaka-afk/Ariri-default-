@@ -186,7 +186,8 @@ const posbotDocumentedImageLimits:Record<string,number>={
   kling_25_turbo:1,kling_26_pro_1080p:1,kling_26_i2v:1,kling_30_turbo:1,
   wan_30_hd:1,wan_30_720p:1,wan_remix_720p:1,minimax_h3:1,minimax_h3_720p:1,wan_30_r2v:1,minimax_h3_r2v:1,kling_30_omni_r2v:1
 };
-const posbotMaxImages=Number(selectedPosbotVideoModel?.max_images||selectedPosbotVideoModel?.max_reference_images||selectedPosbotVideoModel?.max_input_images||posbotSchemaImageLimit||posbotDocumentedImageLimits[posbotModelKey]||0)||(posbotNeedsImage?1:0);
+// Prefer the published per-model limits over incomplete/stale catalog metadata (which may incorrectly say 1).
+const posbotMaxImages=Number(posbotDocumentedImageLimits[posbotModelKey]||selectedPosbotVideoModel?.max_images||selectedPosbotVideoModel?.max_reference_images||selectedPosbotVideoModel?.max_input_images||posbotSchemaImageLimit||0)||(posbotNeedsImage?1:0);
 const posbotPromptLimit=Number(selectedPosbotVideoModel?.max_prompt_length||selectedPosbotVideoModel?.max_prompt||(
   /^(wan_30_hd|wan_30_r2v)$/.test(posbotModelKey)?10000:
   /seedance/.test(posbotModelKey)?8000:
