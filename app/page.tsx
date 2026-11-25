@@ -194,9 +194,9 @@ const posbotModelIdentity=(posbotModelKey+" "+String(selectedPosbotVideoModel?.n
 const posbotIdentityCompact=posbotModelIdentity.replace(/_/g,"");
 const posbotInferredImageLimit=
   /seedance.*(?:25.*30s.*r2v|r2v.*30s)/.test(posbotModelIdentity)?9:
-  /seedance.*(?:20.*mini.*r2v)/.test(posbotModelIdentity)?6:
+  /seedance.*(?:20.*mini.*r2v|2_0.*mini.*r2v)/.test(posbotModelIdentity)?6:
   /seedance.*(?:25.*30s.*strict|25.*lite|lite.*30s|strict)/.test(posbotModelIdentity)?6:
-  /seedance.*(?:20.*mini)/.test(posbotModelIdentity)?1:
+  /seedance.*(?:20.*mini|2_0.*mini)/.test(posbotModelIdentity)?1:
   /seedance.*(?:25.*30s|20.*15s|2_5|2_0)/.test(posbotModelIdentity)?2:
   /wan.*3.*hd|wan3hd/.test(posbotIdentityCompact)?9:
   /betagrok/.test(posbotIdentityCompact)?4:
