@@ -163,10 +163,19 @@ const posbotSupportsAspect=posbotSupportedInputs.includes("aspect_ratio")||(!pos
 const posbotSupportsNegative=posbotSupportedInputs.includes("negative_prompt");
 const posbotSupportsFps=posbotSupportedInputs.includes("fps")||posbotModelKey==="upscale_video";
 const posbotSupportsMode=posbotSupportedInputs.includes("mode")||/^(s2_)?seedance_(25_30s|20_15s)/i.test(posbotModelKey);
-const posbotImageArrayField=posbotSchemaFields?.image_urls||posbotSchemaFields?.reference_image_urls;
+const posbotImageArrayField=posbotSchemaFields?.image_urls||posbotSchemaFields?.reference_image_urls||posbotSchemaFields?.images;
 const posbotSingleImageField=posbotSchemaFields?.image_url;
 const posbotSchemaImageLimit=Number(posbotImageArrayField?.maxItems||posbotSingleImageField?.maxItems||0);
-const posbotMaxImages=Number(selectedPosbotVideoModel?.max_images||selectedPosbotVideoModel?.max_reference_images||selectedPosbotVideoModel?.max_input_images||posbotSchemaImageLimit||0)||(posbotNeedsImage?1:0);
+// PosBot docs publish per-model limits; use these when the live catalog omits maxItems.
+const posbotDocumentedImageLimits:Record<string,number>={
+  s2_seedance_25_30s:2,seedance_25_30s:2,seedance_30s:2,s2_25_30s:2,
+  seedance_25_30s_strict:6,seedance_lite_30s:6,seedance_25_lite:6,
+  seedance_20_15s:2,seedance_20_15s_legacy:2,seedance_20_mini:1,
+  seedance_25_30s_r2v:9,seedance_r2v_30s:9,seedance_20_mini_r2v:6,
+  wan3_hd_15s:9,wan3_hd_30s:9,wan3_hd:9,wan_3_hd_15s:9,wan_3_hd_30s:9,
+  betagrok_15s:4
+};
+const posbotMaxImages=Number(selectedPosbotVideoModel?.max_images||selectedPosbotVideoModel?.max_reference_images||selectedPosbotVideoModel?.max_input_images||posbotSchemaImageLimit||posbotDocumentedImageLimits[posbotModelKey]||0)||(posbotNeedsImage?1:0);
 const posbotPromptLimit=Number(selectedPosbotVideoModel?.max_prompt_length||selectedPosbotVideoModel?.max_prompt||8000);
 const posbotDurationMatch=/\((\d+)s\)/i.exec(String(selectedPosbotVideoModel?.name||""));
 const posbotFixedDuration=Number(selectedPosbotVideoModel?.duration_seconds||selectedPosbotVideoModel?.duration||posbotDurationMatch?.[1]||0);
