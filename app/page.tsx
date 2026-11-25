@@ -187,7 +187,20 @@ const posbotDocumentedImageLimits:Record<string,number>={
   wan_30_hd:1,wan_30_720p:1,wan_remix_720p:1,minimax_h3:1,minimax_h3_720p:1,wan_30_r2v:1,minimax_h3_r2v:1,kling_30_omni_r2v:1
 };
 // Prefer the published per-model limits over incomplete/stale catalog metadata (which may incorrectly say 1).
-const posbotMaxImages=Number(posbotDocumentedImageLimits[posbotModelKey]||selectedPosbotVideoModel?.max_images||selectedPosbotVideoModel?.max_reference_images||selectedPosbotVideoModel?.max_input_images||posbotSchemaImageLimit||0)||(posbotNeedsImage?1:0);
+const posbotModelIdentity=(posbotModelKey+" "+String(selectedPosbotVideoModel?.name||selectedPosbotVideoModel?.title||"")).toLowerCase().replace(/[.-]+/g,"_");
+const posbotInferredImageLimit=
+  /seedance.*(?:25_30s_r2v|r2v_30s)/.test(posbotModelIdentity)?9:
+  /seedance.*(?:25_30s_strict|25_lite|lite_30s)/.test(posbotModelIdentity)?6:
+  /seedance.*20_mini_r2v/.test(posbotModelIdentity)?6:
+  /seedance.*(?:25_30s|30s)/.test(posbotModelIdentity)?2:
+  /seedance.*20_15s/.test(posbotModelIdentity)?2:
+  /seedance.*20_mini/.test(posbotModelIdentity)?1:
+  /wan3?_hd|wan_3_hd/.test(posbotModelIdentity)?9:
+  /betagrok/.test(posbotModelIdentity)?4:
+  /omni.*(?:i2v|11_720p|12_1080p|flash_11|flash_12)/.test(posbotModelIdentity)?3:
+  /(?:grok_imagine|kling|betamotion|motion_control|minimax_h3|wan_30|lipsync)/.test(posbotModelIdentity)?1:0;
+// Known model-family caps override stale catalog/schema values that incorrectly report maxItems=1.
+const posbotMaxImages=Number(posbotDocumentedImageLimits[posbotModelKey]||posbotInferredImageLimit||selectedPosbotVideoModel?.max_images||selectedPosbotVideoModel?.max_reference_images||selectedPosbotVideoModel?.max_input_images||posbotSchemaImageLimit||0)||(posbotNeedsImage?1:0);
 const posbotPromptLimit=Number(selectedPosbotVideoModel?.max_prompt_length||selectedPosbotVideoModel?.max_prompt||(
   /^(wan_30_hd|wan_30_r2v)$/.test(posbotModelKey)?10000:
   /seedance/.test(posbotModelKey)?8000:
