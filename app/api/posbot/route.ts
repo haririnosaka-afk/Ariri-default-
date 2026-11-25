@@ -110,8 +110,11 @@ function dbJobStatus(value: any) {
 function visibleModel(model: any) {
   const key = modelKey(model);
   if (!key) return false;
+  // Seedance 2 Mini Omni memakai harga jual tetap KAZAMA; beberapa katalog provider
+  // tidak mengirim field harga untuk model ini, jadi jangan sembunyikan model tersebut.
+  if (key.toLowerCase() === "seedance_20_mini") return true;
   const price = providerCost(model);
-  // Semua model aktif dengan tarif valid tetap tampil; biaya jual dihitung terpisah.
+  // Model lain hanya tampil jika provider mengirim tarif valid.
   return Number.isFinite(price) && price > 0;
 }
 const POSBOT_VIDEO_KEYS = new Set([
