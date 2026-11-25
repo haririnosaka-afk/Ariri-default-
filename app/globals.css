@@ -1053,3 +1053,53 @@ body{font-family:'DM Sans',sans-serif}
 .studio-mode-card small{display:block!important;font-size:10px!important;line-height:1.45;color:#818797!important;font-weight:500}
 .studio-mode-card.chosen small{color:#6b5ac8!important}
 @media(max-width:760px){.studio-mode-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.studio-mode-card{min-height:76px!important;padding:10px!important}.studio-mode-card b{font-size:11px!important}.studio-mode-card small{font-size:9px!important}}
+
+
+/* KAZAMA dark studio theme — overrides the earlier light palette */
+:root{color-scheme:dark;--bg:#080b12;--panel:#111722;--panel2:#171f2d;--line:#293447;--text:#f3f5fb;--muted:#9aa6ba;--purple:#c0adff;--purple2:#8b76f0;--mint:#70dfbd;--red:#ff8798}
+html,body{background:#080b12!important;color:#f3f5fb!important}
+.sidebar,.topbar{background:#090d15!important;border-color:#273145!important}
+.brand{background:transparent!important}
+.brand small,.navcaption,.sidefoot small,.crumb span{color:#8390a5!important}
+.navitem{color:#aab4c5!important}
+.navitem:hover{background:#171f2d!important;color:#fff!important}
+.navitem.selected{background:#25203b!important;border-color:#7564bd88!important;color:#e0d7ff!important}
+.sidefoot,.formpanel,.outputpanel,.toolcard,.stats,.credithero,.model-card,.history-card,.account-card,.settings-card{background:#111722!important;border-color:#293447!important;color:#eef1f8!important}
+.pagehead h1,.pagehead h2,.formpanel h2,.outputpanel h2,.toolcard b,.stats b,.credithero b{color:#f2f4fa!important}
+.pagehead p,.toolcard p,.stats span,.credithero span,.fineprint,.model-helper,.field>small,.outputnote,.retention-note,.generation-time{color:#9aa6ba!important}
+.field>label,.model-select-field>label{color:#c2cada!important}
+.field input,.field textarea,.field select,.model-select,.search-input,input,textarea,select{background:#0b111b!important;border-color:#354157!important;color:#f1f4fb!important}
+.field input::placeholder,.field textarea::placeholder,input::placeholder,textarea::placeholder{color:#748198!important}
+.field input:focus,.field textarea:focus,.field select:focus,.model-select:focus{border-color:#8c78ec!important;box-shadow:0 0 0 3px #8c78ec22!important}
+.modegrid{border-color:#293447!important}
+.modecard,.studio-mode-card{background:#111a27!important;border-color:#344158!important;color:#e7eaf3!important}
+.modecard:hover,.studio-mode-card:hover{background:#192437!important;border-color:#7667bd!important}
+.modecard.chosen,.studio-mode-card.chosen{background:#27213e!important;border-color:#9b87f3!important;box-shadow:0 0 0 1px #9b87f344!important;color:#f2edff!important}
+.studio-mode-card small{color:#a5afc1!important}
+.studio-mode-card.chosen small{color:#c9bcff!important}
+.model-selected-info,.media-preview-card,.media-thumb-tile{background:#111a27!important;border-color:#354158!important;color:#e8ecf5!important}
+.model-selected-info b,.media-preview-meta b{color:#f1f3fa!important}
+.model-selected-info span,.model-selected-info small,.media-preview-meta small,.media-picker-hint{color:#9aa6ba!important}
+.uploadbox,.media-add-tile,.motion-upload{background:#111a27!important;border-color:#7568b3!important;color:#c6b8ff!important}
+.uploadbox b,.uploadbox small{color:#e6e1ff!important}
+.primary{background:linear-gradient(100deg,#8873f2,#6249d8)!important;color:#fff!important}
+.secondary{background:#171f2d!important;border-color:#39465c!important;color:#dce2ee!important}
+.secondary:hover{background:#222d40!important}
+.preview{background:radial-gradient(ellipse at center,#27213e,#0b111b 72%)!important;border-color:#344158!important}
+.empty,.empty b{color:#dce2ef!important}
+.empty small,.outputnote{color:#9aa6ba!important}
+.emptyorb{background:#2c2547!important;color:#c6b7ff!important}
+.output-progress{background:#283449!important}
+.toolcard:hover{background:#172131!important;border-color:#7567b9!important;box-shadow:0 10px 28px #0005!important}
+.balance-chip{background:#211b35!important;border-color:#64558e!important;color:#d4c7ff!important}
+.avatar{background:#2b2540!important;color:#e0d6ff!important}
+.iconbtn,.mobilemenu,.mobileclose{color:#c3ccda!important}
+.profilemenu{background:#111722!important;border-color:#39465c!important}
+.profileinfo b{color:#f2f4fa!important}
+.profilemenu button{color:#d1d9e7!important}
+.profilemenu button:hover{background:#202a3b!important}
+.footer{color:#8793a8!important;border-color:#293447!important}
+.livepill{color:#73dfbd!important;border-color:#315c54!important;background:#10231f!important}
+.alert.success{background:#10251f!important;color:#8de3c6!important;border-color:#285b4c!important}
+.alert.error{background:#2a171d!important;color:#ff9aa8!important;border-color:#673541!important}
+@media(max-width:760px){.brand{background:#090d15!important}.topbar{background:#090d15!important}}
