@@ -188,20 +188,26 @@ const posbotDocumentedImageLimits:Record<string,number>={
   wan_30_hd:1,wan_30_720p:1,wan_remix_720p:1,minimax_h3:1,minimax_h3_720p:1,wan_30_r2v:1,minimax_h3_r2v:1,kling_30_omni_r2v:1
 };
 // Prefer the published per-model limits over incomplete/stale catalog metadata (which may incorrectly say 1).
-const posbotModelIdentity=(posbotModelKey+" "+String(selectedPosbotVideoModel?.name||selectedPosbotVideoModel?.title||"")).toLowerCase().replace(/[.-]+/g,"_");
+// Normalize both provider keys and display names: catalog labels often use "2.5", spaces, or aliases.
+const posbotModelIdentity=(posbotModelKey+" "+String(selectedPosbotVideoModel?.name||selectedPosbotVideoModel?.title||""))
+  .toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"");
+const posbotIdentityCompact=posbotModelIdentity.replace(/_/g,"");
 const posbotInferredImageLimit=
-  /seedance.*(?:25_30s_r2v|r2v_30s)/.test(posbotModelIdentity)?9:
-  /seedance.*(?:25_30s_strict|25_lite|lite_30s)/.test(posbotModelIdentity)?6:
-  /seedance.*20_mini_r2v/.test(posbotModelIdentity)?6:
-  /seedance.*(?:25_30s|30s)/.test(posbotModelIdentity)?2:
-  /seedance.*20_15s/.test(posbotModelIdentity)?2:
-  /seedance.*20_mini/.test(posbotModelIdentity)?1:
-  /wan3?_hd|wan_3_hd/.test(posbotModelIdentity)?9:
-  /betagrok/.test(posbotModelIdentity)?4:
-  /omni.*(?:i2v|11_720p|12_1080p|flash_11|flash_12)/.test(posbotModelIdentity)?3:
-  /(?:grok_imagine|kling|betamotion|motion_control|minimax_h3|wan_30|lipsync)/.test(posbotModelIdentity)?1:0;
-// Known model-family caps override stale catalog/schema values that incorrectly report maxItems=1.
-const posbotMaxImages=Number(posbotDocumentedImageLimits[posbotModelKey]||posbotInferredImageLimit||selectedPosbotVideoModel?.max_images||selectedPosbotVideoModel?.max_reference_images||selectedPosbotVideoModel?.max_input_images||posbotSchemaImageLimit||0)||(posbotNeedsImage?1:0);
+  /seedance.*(?:25.*30s.*r2v|r2v.*30s)/.test(posbotModelIdentity)?9:
+  /seedance.*(?:20.*mini.*r2v)/.test(posbotModelIdentity)?6:
+  /seedance.*(?:25.*30s.*strict|25.*lite|lite.*30s|strict)/.test(posbotModelIdentity)?6:
+  /seedance.*(?:20.*mini)/.test(posbotModelIdentity)?1:
+  /seedance.*(?:25.*30s|20.*15s|2_5|2_0)/.test(posbotModelIdentity)?2:
+  /wan.*3.*hd|wan3hd/.test(posbotIdentityCompact)?9:
+  /betagrok/.test(posbotIdentityCompact)?4:
+  /omni.*(?:r2v|sfv)/.test(posbotIdentityCompact)?1:
+  /omni.*(?:i2v|flash11|flash12|11_720p|12_1080p)/.test(posbotIdentityCompact)?3:
+  /(?:grokimagine|kling|betamotion|motioncontrol|minimaxh3|wan30|lipsync)/.test(posbotIdentityCompact)?1:0;
+// Provider catalog schemas sometimes expose maxItems=1 even for multi-reference models.
+// Prefer known model-family limits, then valid catalog limits, then schema limits.
+const posbotMaxImages=Number(posbotDocumentedImageLimits[posbotModelKey]||posbotInferredImageLimit||
+  selectedPosbotVideoModel?.max_images||selectedPosbotVideoModel?.max_reference_images||
+  selectedPosbotVideoModel?.max_input_images||posbotSchemaImageLimit||0)||(posbotNeedsImage?1:0);
 const posbotPromptLimit=Number(selectedPosbotVideoModel?.max_prompt_length||selectedPosbotVideoModel?.max_prompt||(
   /^(wan_30_hd|wan_30_r2v)$/.test(posbotModelKey)?10000:
   /seedance/.test(posbotModelKey)?8000:
