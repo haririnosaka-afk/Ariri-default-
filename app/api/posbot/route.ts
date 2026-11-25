@@ -302,6 +302,7 @@ export async function POST(request: NextRequest) {
     if (!model) return NextResponse.json({ ok: false, error: "Model tidak aktif atau tidak tersedia di katalog PosBot KAZAMA." }, { status: 400 });
     const maxPrompt = Number(model.max_prompt_length || model.max_prompt || (
       /^(wan_30_hd|wan_30_r2v)$/.test(modelId) ? 10000 :
+      /^kling_30_turbo$/.test(modelId) ? 2000 :
       /seedance/.test(modelId) ? 8000 :
       /^(grok_imagine_2|minimax_h3)/.test(modelId) ? 5000 :
       2500
