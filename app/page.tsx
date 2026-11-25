@@ -121,7 +121,8 @@ function isPosbotMotionControlModel(model:any){
  const key=String(model?.model_key||model?.key||model?.id||"").toLowerCase();
  const name=String(model?.name||model?.title||"").toLowerCase();
  const id=key+" "+name;
- return /betamotion|motion_control|kling_(?:26_std|26_pro|30_std|30_pro)|kling3_(?:std|pro)|(?:seedance|wan|kling|minimax).*r2v|(?:r2v|reference.to.video)/i.test(id);
+ if(key==="omni_flash_r2v") return false;
+ return /betamotion|motion_control|kling_(?:26_std|26_pro|30_std|30_pro|30_omni_r2v)|kling3_(?:std|pro)|(?:seedance|wan|minimax).*r2v|reference.to.video/i.test(id);
 }
 function posbotModesForModel(model:any):string[]{
  const key=String(model?.model_key||model?.key||model?.id||"").toLowerCase();
