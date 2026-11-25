@@ -104,14 +104,29 @@ function dbJobStatus(value: any) {
 }
 function visibleModel(model: any) {
   const key = modelKey(model);
-  if (!key || key.toLowerCase().includes("omni_flash") || String(model?.name || model?.title || "").toLowerCase().includes("omni flash")) return false;
+  if (!key) return false;
   const price = providerCost(model);
-  // Tampilkan semua model katalog PosBot yang memiliki harga valid.
-  // Harga jual dihitung terpisah; jangan menyembunyikan model hanya karena modalnya di atas batas tertentu.
+  // Semua model aktif dengan tarif valid tetap tampil; biaya jual dihitung terpisah.
   return Number.isFinite(price) && price > 0;
 }
+const POSBOT_VIDEO_KEYS = new Set([
+  "grok_imagine_2_15s","grok_imagine_2_30s","grok_imagine_15_video_720p","betagrok_15s",
+  "s2_seedance_25_30s","seedance_25_30s","seedance_30s","s2_25_30s",
+  "seedance_25_30s_strict","seedance_lite_30s","seedance_25_lite","seedance_20_15s","seedance_20_15s_legacy","seedance_20_mini",
+  "wan_30_hd","wan_30_720p","wan_remix_720p","wan3_hd_15s","wan3_hd_30s","wan3_hd","wan_3_hd_15s","wan_3_hd_30s",
+  "minimax_h3","minimax_h3_720p","kling_25_turbo","kling_26_pro_1080p","kling_26_i2v","kling_30_turbo",
+  "omni_flash_t2v","omni_flash_sfv","omni_flash_i2v","omni_flash_r2v","omni_flash_11_720p","omni_flash_12_1080p","omni_flash_11","omni_11","omni_flash_12","omni_12",
+  "minimax_lipsync","ltx_lipsync",
+  "betamotion_hd","betamotion_720p","rh_bmhd","betamotion_1080p","betamotion","betamotion_1080p_pro","betamotion_60fps","betamotion_1080p_max",
+  "motion_control_std","kling_26_std","mc_std","motion_control_pro","kling_26_pro","mc_pro",
+  "kling_30_std","kling3_std","kling_30_pro","kling3_pro",
+  "upscale_video","upscale_hd","upscale_auto","auto_upscale",
+  "seedance_25_30s_r2v","seedance_r2v_30s","seedance_20_mini_r2v","kling_30_omni_r2v","wan_30_r2v","minimax_h3_r2v"
+]);
 function isVideoModel(model: any) {
   const key = modelKey(model).toLowerCase();
+  if (key === "watermark_remover") return false;
+  if (POSBOT_VIDEO_KEYS.has(key)) return true;
   const name = String(model?.name || model?.title || "").toLowerCase();
   const schema = model?.input_schema || model?.schema || {};
   const inputNames = [
@@ -127,10 +142,8 @@ function isVideoModel(model: any) {
     model?.capabilities, model?.tasks, model?.supported_tasks, model?.modalities,
   ].filter(Boolean).map((value: any) => Array.isArray(value) ? value.join(" ") : typeof value === "object" ? JSON.stringify(value) : String(value)).join(" ").toLowerCase();
   const combined = key + " " + name + " " + metadata + " " + inputNames;
-  // Explicit video workflows take priority: image-to-video models commonly mention both image and video.
-  if (/\bi2v\b|\bt2v\b|\br2v\b|image[ _-]?to[ _-]?video|text[ _-]?to[ _-]?video|video[ _-]?to[ _-]?video|reference[ _-]?to[ _-]?video|video|motion|lip[ _-]?sync|lipsync/.test(combined)) return true;
-  if (/audio|music|tts|voice|speech|upscale[ _-]?image|face[ _-]?swap|image[ _-]?generation/.test(metadata + " " + key)) return false;
-  return /seedance|grok.?imagine|betagrok|wan.?\d|minimax.?h3|kling|betamotion|motion.?control|hailuo|veo|upscale.?video|watermark.?remover|vidu|happyhorse/.test(key + " " + name);
+  if (/audio|music|tts|voice|speech|face[ _-]?swap|upscale[ _-]?image|image[ _-]?generation/.test(metadata + " " + key)) return false;
+  return (/\\bi2v\\b|\\bt2v\\b|\\br2v\\b|image[ _-]?to[ _-]?video|text[ _-]?to[ _-]?video|video[ _-]?to[ _-]?video|reference[ _-]?to[ _-]?video|video|motion|lip[ _-]?sync|lipsync/).test(combined);
 }
 async function getCatalog() {
   const [catalog, statuses] = await Promise.all([
