@@ -1032,3 +1032,15 @@ body{font-family:'DM Sans',sans-serif}
  .outputpanel{padding:15px}
  .footer{padding:18px 12px;gap:12px;flex-wrap:wrap}
 }
+
+
+/* Dola-like generator mode tabs */
+.workgrid>.formpanel{border-radius:14px}
+.workgrid>.formpanel>.field.model-select-field{margin-bottom:18px}
+.modegrid{display:flex;flex-wrap:wrap;gap:7px;padding:0 0 13px;border-bottom:1px solid #eceef3}
+.modecard{flex:1 1 125px;min-height:40px;padding:9px 12px!important;text-align:center}
+.modecard b{font-size:11px}
+.modecard small{display:none}
+.field>label{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;letter-spacing:0;color:#505767}
+.model-select-field>label{font-size:11px}
+@media(max-width:760px){.modecard{flex:1 1 calc(50% - 7px);min-height:38px}.modecard b{font-size:10px}}
