@@ -246,11 +246,142 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   let user: any;
   try { user = await userOrThrow(); }
-  catch (error: any) {
-    return NextResponse.json({ ok: false, error: error.message }, { status: error.status || 401 });
+  catch (error: any) { return NextResponse.json({ ok: false, error: error.message }, { status: error.status || 401 }); }
+  let body: any;
+  try { body = await request.json(); }
+  catch { return NextResponse.json({ ok: false, error: "Body JSON tidak valid." }, { status: 400 }); }
+  if (body.resource === "sign-upload") {
+    try {
+      const db = dbAdmin();
+      await ensureBucket(db);
+      const kind = ["image", "video", "audio"].includes(String(body.kind)) ? String(body.kind) : "image";
+      const name = String(body.name || "upload").replace(/[^a-zA-Z0-9._-]/g, "_").slice(-80);
+      const path = user.id + "/" + crypto.randomUUID() + "-" + name;
+      const { data, error } = await db.storage.from(BUCKET).createSignedUploadUrl(path);
+      if (error || !data) throw error || new Error("Gagal membuat tautan upload.");
+      return NextResponse.json({ ok: true, bucket: BUCKET, path, token: data.token, kind });
+    } catch (error: any) {
+      return NextResponse.json({ ok: false, error: error.message || "Gagal menyiapkan upload." }, { status: 500 });
+    }
   }
-  return NextResponse.json({
-    ok: false,
-    error: "Generate video PosBot telah dinonaktifkan dari KAZAMA. Gunakan Nexa Omni Flash 1.2.",
-  }, { status: 410 });
+  if (body.resource === "complete-upload") {
+    try {
+      const path = String(body.path || "");
+      if (!path.startsWith(user.id + "/")) return NextResponse.json({ ok: false, error: "Akses file ditolak." }, { status: 403 });
+      const { data, error } = await dbAdmin().storage.from(BUCKET).createSignedUrl(path, 86400);
+      if (error || !data?.signedUrl) throw error || new Error("Gagal membuat URL media sementara.");
+      return NextResponse.json({ ok: true, url: data.signedUrl });
+    } catch (error: any) {
+      return NextResponse.json({ ok: false, error: error.message || "Gagal menyiapkan URL media." }, { status: 500 });
+    }
+  }
+  if (body.resource !== "generate") return NextResponse.json({ ok: false, error: "Aksi PosBot tidak dikenal." }, { status: 400 });
+  const modelId = String(body.model || "");
+  const prompt = String(body.prompt || "");
+  if (!modelId) return NextResponse.json({ ok: false, error: "Pilih model PosBot." }, { status: 400 });
+  try {
+    const models = await getCatalog();
+    const model = models.find((item: any) => item.model_key === modelId);
+    if (!model) return NextResponse.json({ ok: false, error: "Model tidak aktif atau tidak tersedia di katalog PosBot KAZAMA." }, { status: 400 });
+    const maxPrompt = Number(model.max_prompt_length || model.max_prompt || (
+      /^(wan_30_hd|wan_30_r2v)$/.test(modelId) ? 10000 :
+      /seedance/.test(modelId) ? 8000 :
+      /^(grok_imagine_2|minimax_h3)/.test(modelId) ? 5000 :
+      2500
+    ));
+    if (prompt.length > maxPrompt) return NextResponse.json({ ok: false, error: "Prompt model ini maksimal " + maxPrompt.toLocaleString("id-ID") + " karakter." }, { status: 400 });
+    const db = dbAdmin();
+    const tokenCost = Number(model.customer_tokens);
+    const chargeRef = crypto.randomUUID();
+    const admin = isAdmin(user.email);
+    let charged = false;
+    if (!admin) {
+      const { error } = await db.rpc("spend_token_amount", { p_user_id: user.id, p_reference_id: chargeRef, p_cost_units: tokenCost * 2 });
+      if (error) {
+        const insufficient = /insufficient_tokens/i.test(error.message);
+        throw Object.assign(new Error(insufficient ? "Token KAZAMA tidak cukup untuk model ini." : error.message), { status: insufficient ? 402 : 500 });
+      }
+      charged = true;
+    }
+    let providerAccepted = false;
+    try {
+      const files = Array.isArray(body.files) ? body.files : [];
+      const urls: Record<string, string[]> = { image: [], video: [], audio: [] };
+      if (files.length) {
+        await ensureBucket(db);
+        for (let i = 0; i < files.length; i++) {
+          const item = files[i];
+          const kind = ["image", "video", "audio"].includes(item.kind) ? item.kind : "image";
+          urls[kind].push(await uploadDataUrl(db, user.id, item, i));
+        }
+      }
+      const payload: any = { model: modelId };
+      if (prompt) payload.prompt = prompt;
+      if (urls.image.length) {
+        payload.image_url = urls.image[0];
+        payload.image_urls = urls.image;
+        payload.reference_image_urls = urls.image;
+      }
+      if (urls.video.length) payload.video_url = urls.video[0];
+      if (urls.audio.length) payload.audio_url = urls.audio[0];
+      if (body.aspect_ratio) payload.aspect_ratio = body.aspect_ratio;
+      if (body.negative_prompt) payload.negative_prompt = String(body.negative_prompt);
+      if (body.lyrics) payload.lyrics = String(body.lyrics);
+      if (typeof body.instrumental === "boolean") payload.instrumental = body.instrumental;
+      if (body.voice) payload.voice = String(body.voice);
+      if (body.duration) payload.duration = Number(body.duration);
+      if (body.fps) payload.fps = Number(body.fps);
+      if (body.extra && typeof body.extra === "object" && !Array.isArray(body.extra)) {
+        for (const [key, value] of Object.entries(body.extra)) {
+          if (!["model", "api_key", "authorization", "token", "resource"].includes(key.toLowerCase())) payload[key] = value;
+        }
+      }
+      const response = await fetch(POSBOT_BASE + "/generate", {
+        method: "POST",
+        headers: posbotHeaders(),
+        body: JSON.stringify(payload),
+        cache: "no-store",
+        signal: AbortSignal.timeout(60000),
+      });
+      const raw = await response.text();
+      let result: any;
+      try { result = raw ? JSON.parse(raw) : {}; }
+      catch { throw new Error("Respons generate PosBot tidak valid."); }
+      if (!response.ok || result?.success === false || result?.ok === false) {
+        throw Object.assign(new Error(String(result?.error || result?.message || "PosBot menolak generate (" + response.status + ").")), { status: response.status || 502 });
+      }
+      providerAccepted = true;
+      const jobId = String(result.job_code || result.job_id || result.id || result.data?.job_code || result.data?.job_id || "");
+      if (!jobId) throw new Error("PosBot menerima request tetapi tidak mengembalikan job_code.");
+      const row = {
+        user_id: user.id,
+        token_reference: chargeRef,
+        provider_job_id: jobId,
+        provider_task_id: jobId,
+        provider: "posbot",
+        status: dbJobStatus(result.status),
+        model: modelId,
+        resolution: String(body.resolution || "auto"),
+        duration_seconds: Number(body.duration || body.extra?.duration || 0),
+        aspect_ratio: String(body.aspect_ratio || "auto"),
+        prompt,
+        customer_price_idr: Number(model.customer_price_idr),
+        reference_files: urls,
+        updated_at: new Date().toISOString(),
+      };
+      const { error: insertError } = await db.from("generation_jobs").insert(row);
+      if (insertError) {
+        console.error("PosBot job tracking insert failed:", insertError.message);
+        return NextResponse.json({ ok: true, job_id: jobId, status: result.status || "queued", model: model.name, customer_tokens: tokenCost, tracking_warning: "Provider menerima tugas, tetapi penyimpanan riwayat gagal. Jangan kirim ulang generate yang sama." });
+      }
+      return NextResponse.json({ ok: true, job_id: jobId, status: result.status || "queued", model: model.name, provider_cost_idr: model.price, customer_price_idr: model.customer_price_idr, customer_tokens: tokenCost, token_reference: chargeRef });
+    } catch (error: any) {
+      if (charged && !providerAccepted) {
+        try { await db.rpc("refund_token", { p_user_id: user.id, p_reference_id: chargeRef, p_reason: "PosBot request failed before acceptance" }); } catch {}
+      }
+      throw error;
+    }
+  } catch (error: any) {
+    return NextResponse.json({ ok: false, error: error.message || "Generate PosBot gagal." }, { status: error.status || 502 });
+  }
 }
