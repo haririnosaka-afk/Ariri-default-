@@ -78,6 +78,7 @@ const FIXED_CUSTOMER_PRICES_IDR: Record<string, number> = {
   kling4_ref_720p_15s: 8000,
   motion_control_std: 4000,
   kling_30_pro: 5000,
+  kling_30_turbo: 4000,
   minimax_music3: 1000,
 };
 function fixedCustomerPrice(model: any): number | null {
@@ -112,7 +113,7 @@ function visibleModel(model: any) {
   if (!key) return false;
   // Seedance 2 Mini Omni memakai harga jual tetap KAZAMA; beberapa katalog provider
   // tidak mengirim field harga untuk model ini, jadi jangan sembunyikan model tersebut.
-  if (key.toLowerCase() === "seedance_20_mini") return true;
+  if (["seedance_20_mini", "kling_30_turbo"].includes(key.toLowerCase())) return true;
   const price = providerCost(model);
   // Model lain hanya tampil jika provider mengirim tarif valid.
   return Number.isFinite(price) && price > 0;
@@ -178,6 +179,8 @@ async function getCatalog() {
     .filter((model: any) => {
       const identity = String(model.model_key||"")+" "+String(model.name||model.title||"");
       return /minimax.*lipsync.*pro|lipsync.*pro.*minimax/i.test(identity)
+        || String(model.model_key||"").toLowerCase()==="kling_30_turbo"
+        || /kling.*3(?:\\.0)?.*10s/i.test(identity)
         || (String(model.model_key||"").toLowerCase()==="seedance_20_mini" || (/seedance/.test(identity) && /mini/.test(identity) && /omni/.test(identity) && /2/.test(identity)))
         || (/seedance/.test(identity) && /2(?:[ _.-]?0)?.*15s/i.test(identity) && !/2[ _.-]?5|25|2\.5/i.test(identity));
     });
