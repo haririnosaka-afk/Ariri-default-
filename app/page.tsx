@@ -194,7 +194,7 @@ const posbotModelIdentity=(posbotModelKey+" "+String(selectedPosbotVideoModel?.n
   .toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"");
 const posbotIdentityCompact=posbotModelIdentity.replace(/_/g,"");
 const posbotKling3_10s=posbotModelKey.toLowerCase()==="kling_30_turbo"||/kling.*3(?:\\.0)?.*10s/i.test(posbotModelIdentity);
-const posbotKling4_20s=(["kling4_720p_20s","kling_4_20s"].includes(posbotModelKey.toLowerCase())||(/kling/.test((posbotModelKey+" "+String(selectedPosbotVideoModel?.name||selectedPosbotVideoModel?.title||"")).toLowerCase().replace(/[^a-z0-9]+/g,"_"))&&/(?:^|_)kling4?(?:_|$)|(?:^|_)4(?:_|$)/.test((posbotModelKey+" "+String(selectedPosbotVideoModel?.name||selectedPosbotVideoModel?.title||"")).toLowerCase().replace(/[^a-z0-9]+/g,"_"))&&/20s/.test((posbotModelKey+" "+String(selectedPosbotVideoModel?.name||selectedPosbotVideoModel?.title||"")).toLowerCase().replace(/[^a-z0-9]+/g,"_")));
+const posbotKling4_20s=["kling4_720p_20s","kling_4_20s"].includes(posbotModelKey.toLowerCase())||(/kling/.test(posbotModelIdentity)&&/(?:^|_)kling4?(?:_|$)|(?:^|_)4(?:_|$)/.test(posbotModelIdentity)&&/20s/.test(posbotModelIdentity));
 const posbotLipSyncPro=/minimax.*lipsync.*pro|lipsync.*pro.*minimax/i.test(posbotModelKey+" "+String(selectedPosbotVideoModel?.name||selectedPosbotVideoModel?.title||""));
 const posbotSeedance2_15=/seedance/.test(posbotModelIdentity)&&/(seedance_?2(?:_?0)?(?:_?15s)?|seedance_2_15s)/.test(posbotModelIdentity)&&!/2_?5|25|2\.5/.test(posbotModelIdentity);
 const posbotSeedance2MiniOmni=posbotModelKey.toLowerCase()==="seedance_20_mini"||(/seedance/.test(posbotModelIdentity)&&/mini/.test(posbotModelIdentity)&&/omni/.test(posbotModelIdentity)&&/(?:^|_)2(?:_?0)?(?:_|$)/.test(posbotModelIdentity));
