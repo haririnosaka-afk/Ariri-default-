@@ -127,13 +127,13 @@ function posbotModesForModel(model:any):string[]{
  const key=String(model?.model_key||model?.key||model?.id||"").toLowerCase();
  const name=String(model?.name||model?.title||"").toLowerCase();
  const id=key+" "+name;
+ if(/(?:^|_)r2v(?:_|$)|reference.to.video/i.test(key+" "+name)) return ["r2v"];
  if(/omni_flash_(?:11_720p|12_1080p|11|12)|omni_1[12]/i.test(key)) return ["t2v","sfv","i2v","r2v"];
- if(/seedance.*(?:25_30s|25_lite|lite_30s|20_15s)/i.test(key+" "+name)){
-  return /seedance.*(?:20_15s|2\.0.*15s)/i.test(id)?["t2v","i2v"]:["t2v","i2v","f2f"];
+ if(/seedance_20_mini/i.test(key)) return ["i2v"];
+ if(/seedance.*(?:25_30s|25_lite|lite_30s|20_15s)/i.test(key+" "+name)||/seedance.*2[._ ]?5.*30s|seedance.*2[._ ]?0.*15s/i.test(id)){
+  return /seedance.*(?:20_15s|2[._ ]?0.*15s)/i.test(id)?["t2v","i2v"]:["t2v","i2v","f2f"];
  }
  if(/grok_imagine_2_(?:15s|30s)/i.test(key)) return ["t2v","i2v"];
- if(/(?:^|_)r2v(?:_|$)|reference.to.video/i.test(key+" "+name)) return ["r2v"];
- if(/seedance_20_mini/i.test(key)) return ["i2v"];
  if(/omni_flash_t2v/i.test(key)) return ["t2v"];
  if(/omni_flash_sfv/i.test(key)) return ["sfv"];
  if(/omni_flash_i2v|grok_imagine_15_video|betagrok_15s|wan_30_hd|wan_remix_720p|wan3_hd|minimax_h3(?:_720p)?|kling_25_turbo|kling_26_pro_1080p|kling_30_turbo/i.test(key)) return ["i2v"];
