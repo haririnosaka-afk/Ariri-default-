@@ -83,7 +83,7 @@ function fixedCustomerPrice(model: any): number | null {
   const name = String(model?.name || model?.title || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   if (/minimax.*h3.*1080p.*15s|h3.*1080p.*15s/.test(name)) return 5000;
   if (/minimax.*h3.*720p.*30s|h3.*720p.*30s/.test(name)) return 6000;
-  if (/minimax.*lipsync.*pro.*30s|lipsync.*pro.*30s/.test(name)) return 6000;
+  if (/minimax.*lipsync.*pro.*30s|lipsync.*pro.*30s/.test(name)) return 5000;
   if (/kling.*3(?:\.0)?.*10s/.test(name)) return 4000;
   return null;
 }
