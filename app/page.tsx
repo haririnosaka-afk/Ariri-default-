@@ -169,7 +169,7 @@ const posbotModelIdentity=(posbotModelKey+" "+String(selectedPosbotVideoModel?.n
   .toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"");
 const posbotIdentityCompact=posbotModelIdentity.replace(/_/g,"");
 const posbotKling3_10s=posbotModelKey.toLowerCase()==="kling_30_turbo"||/kling.*3(?:\\.0)?.*10s/i.test(posbotModelIdentity);
-const posbotKling4_20s=/kling/.test((posbotModelKey+" "+String(selectedPosbotVideoModel?.name||selectedPosbotVideoModel?.title||"")).toLowerCase().replace(/[^a-z0-9]+/g,"_"))&&/(?:^|_)4(?:_|$)/.test((posbotModelKey+" "+String(selectedPosbotVideoModel?.name||selectedPosbotVideoModel?.title||"")).toLowerCase().replace(/[^a-z0-9]+/g,"_"))&&/20s/.test((posbotModelKey+" "+String(selectedPosbotVideoModel?.name||selectedPosbotVideoModel?.title||"")).toLowerCase().replace(/[^a-z0-9]+/g,"_"));
+const posbotKling4_20s=(["kling4_720p_20s","kling_4_20s"].includes(posbotModelKey.toLowerCase())||(/kling/.test((posbotModelKey+" "+String(selectedPosbotVideoModel?.name||selectedPosbotVideoModel?.title||"")).toLowerCase().replace(/[^a-z0-9]+/g,"_"))&&/(?:^|_)kling4?(?:_|$)|(?:^|_)4(?:_|$)/.test((posbotModelKey+" "+String(selectedPosbotVideoModel?.name||selectedPosbotVideoModel?.title||"")).toLowerCase().replace(/[^a-z0-9]+/g,"_"))&&/20s/.test((posbotModelKey+" "+String(selectedPosbotVideoModel?.name||selectedPosbotVideoModel?.title||"")).toLowerCase().replace(/[^a-z0-9]+/g,"_")));
 const posbotLipSyncPro=/minimax.*lipsync.*pro|lipsync.*pro.*minimax/i.test(posbotModelKey+" "+String(selectedPosbotVideoModel?.name||selectedPosbotVideoModel?.title||""));
 const posbotSeedance2_15=/seedance/.test(posbotModelIdentity)&&/(seedance_?2(?:_?0)?(?:_?15s)?|seedance_2_15s)/.test(posbotModelIdentity)&&!/2_?5|25|2\.5/.test(posbotModelIdentity);
 const posbotSeedance2MiniOmni=posbotModelKey.toLowerCase()==="seedance_20_mini"||(/seedance/.test(posbotModelIdentity)&&/mini/.test(posbotModelIdentity)&&/omni/.test(posbotModelIdentity)&&/(?:^|_)2(?:_?0)?(?:_|$)/.test(posbotModelIdentity));
@@ -280,6 +280,7 @@ async function generatePosbotVideo() {
  if(posbotSeedance2_15&&prompt.length>2000)throw new Error("Prompt maksimal 2.000 karakter.");
  if(posbotSeedance2_15&&posbotImages.some(file=>file.size>10*1024*1024))throw new Error("Setiap foto maksimal 10 MB.");
  if(posbotPromptRequired&&!prompt.trim()&&!posbotPromptFile)throw new Error("Prompt wajib diisi atau unggah file .txt.");
+ if(posbotKling4_20s&&prompt.trim().length<3)throw new Error("Prompt Kling 4 minimal 3 karakter.");
  if(posbotLipSyncPro&&!posbotAudio)throw new Error("Upload 1 file audio suara terlebih dahulu untuk Minimax LipSync Pro (30s).");
  if(posbotPromptRequired&&prompt.length>posbotPromptLimit)throw new Error("Prompt maksimal "+posbotPromptLimit+" karakter untuk model ini.");
  if(!posbotSeedance2MiniOmni&&(posbotVideoRequired||posbotModeNeedsVideo)&&!posbotVideo)throw new Error("Mode/model ini wajib menggunakan video referensi.");
