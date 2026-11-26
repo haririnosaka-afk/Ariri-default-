@@ -18,3 +18,71 @@
 .media-add-tile small{font-size:9px;color:#a99ce0}
 .media-add-tile input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
 .media-picker-hint{font-size:9px;color:#8490a4;margin-left:2px}
+
+
+/* Layout safety: prevent cards, controls and dialogs from being clipped */
+html,body{width:100%;max-width:100%;overflow-x:hidden}
+.shell,.main,.page,.panel,.pagehead,.workgrid,.formpanel,.outputpanel{min-width:0}
+.main{width:calc(100% - 250px);max-width:calc(100% - 250px)}
+.page{width:100%;min-width:0}
+.workgrid>*{min-width:0}
+.stats>div,.toolcard,.pricecard,.modecard,.field,.fieldgrid>*{min-width:0}
+.field input,.field textarea,.field select,.fieldgrid select{max-width:100%;min-width:0}
+.outputpanel{min-width:0}
+.preview{max-width:100%;min-width:0}
+.tablepanel{max-width:100%;overflow-x:auto}
+.creationbody{min-width:0;overflow-wrap:anywhere}
+.history-modal-backdrop{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;background:#05070bd9;overflow-y:auto}
+.history-modal,.confirm-dialog{width:min(720px,100%);max-height:calc(100dvh - 32px);overflow-y:auto;background:#111621;border:1px solid #39445a;border-radius:14px;padding:18px;box-shadow:0 24px 70px #000b}
+.history-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:15px}
+.history-modal-head>div{min-width:0}
+.history-modal-head b{display:block;font-size:13px}
+.history-modal-head small{display:block;margin-top:5px;color:#929db0;font-size:10px;line-height:1.5;overflow-wrap:anywhere}
+.history-modal-media{width:100%;max-height:65dvh;display:grid;place-items:center;overflow:hidden;background:#080a10;border:1px solid var(--line);border-radius:9px;margin:12px 0}
+.history-modal-media img,.history-modal-media video{display:block;max-width:100%;max-height:65dvh;object-fit:contain}
+.confirm-dialog{width:min(440px,100%);text-align:center}
+.confirm-dialog p{font-size:11px;line-height:1.7;color:#a0aabd}
+.confirm-actions{display:flex;justify-content:center;gap:9px;flex-wrap:wrap;margin-top:18px}
+@media(max-width:760px){
+ .main{width:100%;max-width:100%}
+ .page{padding-left:clamp(12px,3.5vw,18px);padding-right:clamp(12px,3.5vw,18px)}
+ .workgrid{grid-template-columns:minmax(0,1fr)}
+ .workgrid>*{width:100%;max-width:100%}
+ .outputpanel{position:static;top:auto}
+ .fieldgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .fieldgrid>*{min-width:0}
+ .fieldgrid select{width:100%;text-overflow:ellipsis}
+ .modegrid,.toolgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .pricegrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .topbar{min-width:0;gap:8px}
+ .crumb{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .topright{min-width:0}
+ .connection{white-space:nowrap}
+ .preview{height:auto;min-height:190px;max-height:60dvh}
+ .preview video,.preview img{max-height:60dvh;object-fit:contain}
+ .history-modal-backdrop{align-items:flex-start;padding:10px}
+ .history-modal,.confirm-dialog{max-height:calc(100dvh - 20px);padding:14px}
+}
+@media(max-width:420px){
+ .welcome{padding:22px 17px;min-height:210px}
+ .welcome h1{font-size:clamp(30px,9vw,38px);letter-spacing:-1.8px}
+ .stats{gap:7px}
+ .stats>div{padding:11px}
+ .stats b{font-size:19px}
+ .toolgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ .toolcard{min-height:145px;padding:11px}
+ .toolcard>b{font-size:11px}
+ .toolcard p{font-size:9px}
+ .pagehead h1{font-size:clamp(29px,8vw,34px);letter-spacing:-1.5px}
+ .formpanel{padding:13px}
+ .fieldgrid{gap:7px}
+ .fieldgrid select{font-size:9px;padding:0 5px}
+ .modecard{padding:9px}
+ .modecard b{font-size:9px}
+ .modecard small{font-size:8px;line-height:1.4}
+ .outputhead{flex-wrap:wrap;gap:8px}
+ .output-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+ .pricecard{padding:12px}
+ .pricecard b{font-size:19px}
+ .footer span:last-child{line-height:1.6}
+}
