@@ -119,7 +119,7 @@ function visibleModel(model: any) {
   if (!key) return false;
   // Seedance 2 Mini Omni memakai harga jual tetap KAZAMA; beberapa katalog provider
   // tidak mengirim field harga untuk model ini, jadi jangan sembunyikan model tersebut.
-  if (["seedance_20_mini", "kling_30_turbo", "kling4_720p_20s", "kling_4_20s"].includes(key.toLowerCase()) || /kling.*4.*20s/i.test(String(model?.name||model?.title||""))) return true;
+  if (["seedance_20_mini", "seedance_2_mini_omni_15s", "kling_30_turbo", "kling4_720p_20s", "kling_4_20s"].includes(key.toLowerCase()) || /seedance.*2.*mini.*omni|kling.*4.*20s/i.test(String(model?.name||model?.title||""))) return true;
   const price = providerCost(model);
   // Model lain hanya tampil jika provider mengirim tarif valid.
   return Number.isFinite(price) && price > 0;
@@ -127,7 +127,7 @@ function visibleModel(model: any) {
 const POSBOT_VIDEO_KEYS = new Set([
   "grok_imagine_2_15s","grok_imagine_2_30s","grok_imagine_15_video_720p","betagrok_15s",
   "s2_seedance_25_30s","seedance_25_30s","seedance_30s","s2_25_30s",
-  "seedance_25_30s_strict","seedance_lite_30s","seedance_25_lite","seedance_20_15s","seedance_20_15s_legacy","seedance_20_mini",
+  "seedance_25_30s_strict","seedance_lite_30s","seedance_25_lite","seedance_20_15s","seedance_20_15s_legacy","seedance_20_mini","seedance_2_mini_omni_15s",
   "wan_30_hd","wan_30_720p","wan_remix_720p","wan3_hd_15s","wan3_hd_30s","wan3_hd","wan_3_hd_15s","wan_3_hd_30s",
   "minimax_h3","minimax_h3_720p","kling_25_turbo","kling_26_pro_1080p","kling_26_i2v","kling_30_turbo","kling4_720p_20s","kling_4_20s",
   "omni_flash_t2v","omni_flash_sfv","omni_flash_i2v","omni_flash_r2v","omni_flash_11_720p","omni_flash_12_1080p","omni_flash_11","omni_11","omni_flash_12","omni_12",
@@ -173,7 +173,7 @@ async function getCatalog() {
     return {
       ...model,
       model_key: key,
-      name: String(model.name || model.title || key),
+      name: /seedance.*2.*mini.*omni/i.test(key+" "+String(model.name||model.title||"")) ? "Seedance 2 Mini Omni (15s)" : String(model.name || model.title || key),
       price: providerCost(model),
       customer_tokens: customerTokens(model),
       customer_price_idr: customerTokens(model) * TOKEN_PRICE_IDR,
@@ -302,6 +302,7 @@ export async function POST(request: NextRequest) {
     const maxPrompt = Number(model.max_prompt_length || model.max_prompt || (
       /^(wan_30_hd|wan_30_r2v)$/.test(modelId) ? 10000 :
       /^kling_30_turbo$/.test(modelId) ? 2500 :
+      /seedance.*2.*mini.*omni|^seedance_20_mini$/.test(modelId) ? 7000 :
       /seedance/.test(modelId) ? 8000 :
       /^(grok_imagine_2|minimax_h3)/.test(modelId) ? 5000 :
       2500
@@ -323,6 +324,14 @@ export async function POST(request: NextRequest) {
     let providerAccepted = false;
     try {
       const files = Array.isArray(body.files) ? body.files : [];
+      const isSeedanceMiniOmni = modelId === "seedance_20_mini" || /seedance.*2.*mini.*omni/i.test(modelId);
+      if (isSeedanceMiniOmni) {
+        const imageCount = files.filter((item:any) => item?.kind === "image").length;
+        const videoCount = files.filter((item:any) => item?.kind === "video").length;
+        if (imageCount < 1 || imageCount > 10) throw Object.assign(new Error("Seedance 2 Mini Omni membutuhkan 1–10 foto referensi."), { status: 400 });
+        if (videoCount > 1) throw Object.assign(new Error("Maksimal 1 video acuan."), { status: 400 });
+        if (!prompt.trim() || prompt.length > 7000) throw Object.assign(new Error("Prompt wajib diisi dan maksimal 7.000 karakter."), { status: 400 });
+      }
       const urls: Record<string, string[]> = { image: [], video: [], audio: [] };
       if (files.length) {
         await ensureBucket(db);
