@@ -64,6 +64,10 @@ function isImageModel(model: any) {
   return category.includes("image") || /^(krea|nano_banana|gpt_image|flux|seedream|face_swap|upscale_4k)/.test(key);
 }
 const FIXED_CUSTOMER_PRICES_IDR: Record<string, number> = {
+  // Omni Flash 1.2 · fixed KAZAMA customer price: 100 Credit (Rp1,000).
+  omni_flash_12: 1000,
+  omni_12: 1000,
+  omni_flash_12_1080p: 1000,
   wan_remix: 5000,
   betamotion_1080p_pro: 6000,
   seedance_2_15s: 4000,
