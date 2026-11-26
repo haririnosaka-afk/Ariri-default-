@@ -170,8 +170,8 @@ async function posbotRequest(body:any) {
  if(!r.ok||d.ok===false)throw new Error(d.error||"Permintaan PosBot gagal ("+r.status+").");
  return d;
 }
-async function uploadPosbotFile(file:File,kind:"image"|"video"|"audio") {
- const signed=await posbotRequest({resource:"sign-upload",kind,name:file.name});
+async function uploadPosbotFile(file:File,kind:"image"|"video"|"audio",model?:string) {
+ const signed=await posbotRequest({resource:"sign-upload",kind,name:file.name,size:file.size,mime:file.type,model});
  const url=process.env.NEXT_PUBLIC_SUPABASE_URL,anon=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
  if(!url||!anon)throw new Error("Konfigurasi Supabase publik belum lengkap.");
  const client=createClient(url,anon);
@@ -317,13 +317,13 @@ async function generatePosbotVideo() {
  if(posbotImages.length>posbotMaxImages)throw new Error("Model ini maksimal "+posbotMaxImages+" foto referensi.");
  const files:any[]=[];
  const includeReferenceImages=posbotModeNeedsImage||(posbotModeNeedsVideo&&posbotImages.length>0)||(!posbotSupportsMode&&posbotImageRequired);
- if(includeReferenceImages)for(const file of posbotImages)files.push(await uploadPosbotFile(file,"image"));
+ if(includeReferenceImages)for(const file of posbotImages)files.push(await uploadPosbotFile(file,"image",posbotSeedance2MiniOmni?posbotModelKey:undefined));
  const seedancePrompt=(posbotSeedance2_15||posbotSeedance2MiniOmni||posbotKling3_10s)&&posbotPromptFile?await posbotPromptFile.text():prompt;
  if(posbotKling3_10s&&seedancePrompt.length>2500)throw new Error("Isi file .txt maksimal 2.500 karakter.");
  if(posbotSeedance2MiniOmni&&seedancePrompt.length>7000)throw new Error("Isi file .txt maksimal 7.000 karakter.");
  if(posbotSeedance2_15&&seedancePrompt.length>8000)throw new Error("Isi file .txt maksimal 8.000 karakter.");
  if(posbotLipSyncPro&&posbotAudio){const audio=await trimAudioTo30Seconds(posbotAudio);files.push(await uploadPosbotFile(audio,"audio"));}
- if(posbotVideo&&(posbotSeedance2MiniOmni||posbotModeNeedsVideo||posbotVideoRequired||posbotKling4_20s))files.push(await uploadPosbotFile(posbotVideo,"video"));
+ if(posbotVideo&&(posbotSeedance2MiniOmni||posbotModeNeedsVideo||posbotVideoRequired||posbotKling4_20s))files.push(await uploadPosbotFile(posbotVideo,"video",posbotSeedance2MiniOmni?posbotModelKey:undefined));
  const extra:any={};
  if(posbotSupportsMode)extra.mode=posbotEffectiveMode;
  if(posbotKling3_10s)extra.duration=15;else if(posbotLipSyncPro)extra.duration=30;else if(posbotKling4_20s)extra.duration=20;else if(posbotSeedance2_15||posbotSeedance2MiniOmni)extra.duration=15;else if(posbotDuration)extra.duration=Number(posbotDuration);else if(/kling_30_(std|pro)/i.test(posbotModelKey))extra.duration=30;if(posbotSupportsFps)extra.fps=Number(posbotFps);if(posbotResolutionOptions.length)extra.resolution=posbotResolutionOptions.includes(posbotResolution)?posbotResolution:posbotResolutionOptions[0];
