@@ -272,6 +272,14 @@ export async function POST(request: NextRequest) {
       await ensureBucket(db);
       const kind = ["image", "video", "audio"].includes(String(body.kind)) ? String(body.kind) : "image";
       const name = String(body.name || "upload").replace(/[^a-zA-Z0-9._-]/g, "_").slice(-80);
+      const modelKey = String(body.model || "").toLowerCase();
+      const isSeedanceMiniOmni = modelKey === "seedance_20_mini" || /seedance.*2.*mini.*omni/.test(modelKey);
+      if (isSeedanceMiniOmni) {
+        const size = Number(body.size || 0), mime = String(body.mime || "").toLowerCase();
+        if (kind === "image" && (size <= 0 || size > 10 * 1024 * 1024 || !["image/jpeg","image/png","image/webp"].includes(mime))) throw Object.assign(new Error("Foto Seedance harus JPG/PNG/WEBP dan maksimal 10 MB per file."), { status: 400 });
+        if (kind === "video" && (size <= 0 || size > 50 * 1024 * 1024 || !["video/mp4","video/quicktime","video/webm"].includes(mime))) throw Object.assign(new Error("Video acuan harus MP4/MOV/WEBM dan maksimal 50 MB."), { status: 400 });
+        if (kind === "audio") throw Object.assign(new Error("Model ini tidak menerima file audio acuan."), { status: 400 });
+      }
       const path = user.id + "/" + crypto.randomUUID() + "-" + name;
       const { data, error } = await db.storage.from(BUCKET).createSignedUploadUrl(path);
       if (error || !data) throw error || new Error("Gagal membuat tautan upload.");
