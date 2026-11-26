@@ -173,7 +173,7 @@ async function getCatalog() {
     return {
       ...model,
       model_key: key,
-      name: /seedance.*2.*mini.*omni/i.test(key+" "+String(model.name||model.title||"")) ? "Seedance 2 Mini Omni (15s)" : String(model.name || model.title || key),
+      name: ["seedance_20_mini","seedance_2_mini_omni_15s"].includes(key.toLowerCase()) || /seedance.*2.*mini.*omni/i.test(key+" "+String(model.name||model.title||"")) ? "Seedance 2 Mini Omni (15s)" : String(model.name || model.title || key),
       price: providerCost(model),
       customer_tokens: customerTokens(model),
       customer_price_idr: customerTokens(model) * TOKEN_PRICE_IDR,
