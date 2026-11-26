@@ -104,3 +104,29 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
 @media(min-width:761px) and (max-width:1050px){.modegrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 
+
+/* Premium generation state */
+.empty-generating{width:100%;padding:24px 14px;gap:10px}
+.render-visual{position:relative;width:112px;height:112px;display:grid;place-items:center;margin:4px auto 2px}
+.render-core{width:58px;height:58px;border-radius:20px;display:grid;place-items:center;color:#e5dcff;background:linear-gradient(145deg,#8d70ff,#4932a2);box-shadow:0 0 24px #9b7aff77, inset 0 1px 10px #ffffff55;animation:render-core-pulse 2s ease-in-out infinite}
+.render-orbit{position:absolute;inset:8px;border:1px solid #a994ff88;border-radius:50%;animation:render-spin 5s linear infinite}
+.render-orbit:after{content:"";position:absolute;width:7px;height:7px;border-radius:50%;background:#d8c9ff;box-shadow:0 0 12px #bca5ff;top:8px;left:12px}
+.render-orbit-two{inset:0 18px;border-color:#65e6d0aa;transform:rotate(55deg);animation:render-spin-reverse 7s linear infinite}
+.render-orbit-two:after{background:#65e6d0;top:15px;left:7px}
+.render-scanline{position:absolute;inset:0;border-radius:50%;background:linear-gradient(180deg,transparent 42%,#a994ff22 50%,transparent 58%);animation:render-scan 2.8s ease-in-out infinite}
+.render-eyebrow{display:flex;align-items:center;gap:7px;color:#b9aaff;font:8px 'DM Mono';letter-spacing:1.4px}
+.render-eyebrow i{width:6px;height:6px;border-radius:50%;background:#65e6d0;box-shadow:0 0 9px #65e6d0;animation:render-dot 1s infinite}
+.render-steps{display:flex;align-items:center;justify-content:center;gap:13px;margin:3px 0;color:#66738a;font:8px 'DM Mono';letter-spacing:.3px}
+.render-steps span{display:flex;align-items:center;gap:5px}
+.render-steps i{width:4px;height:4px;border-radius:50%;background:#46516a}
+.render-steps .active{color:#d2c5ff}
+.render-steps .active i{background:#a994ff;box-shadow:0 0 7px #a994ff}
+.output-progress{width:min(250px,80%);height:4px;border-radius:8px;overflow:hidden;background:#252d40;margin:3px auto}
+.output-progress i{display:block;width:36%;height:100%;border-radius:8px;background:linear-gradient(90deg,#7d65e8,#65e6d0,#bba8ff);box-shadow:0 0 12px #a994ff;animation:render-progress 1.8s ease-in-out infinite}
+@keyframes render-spin{to{transform:rotate(360deg)}}
+@keyframes render-spin-reverse{to{transform:rotate(-360deg)}}
+@keyframes render-core-pulse{0%,100%{transform:scale(.94);box-shadow:0 0 18px #9b7aff55}50%{transform:scale(1.06);box-shadow:0 0 32px #9b7affaa}}
+@keyframes render-scan{0%,100%{transform:translateY(-12px);opacity:.25}50%{transform:translateY(12px);opacity:1}}
+@keyframes render-dot{50%{opacity:.25}}
+@keyframes render-progress{0%{transform:translateX(-110%)}100%{transform:translateX(290%)}}
+@media(prefers-reduced-motion:reduce){.render-orbit,.render-core,.render-scanline,.render-eyebrow i,.output-progress i{animation:none}}
