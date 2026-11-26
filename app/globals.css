@@ -1238,3 +1238,54 @@ body{font-family:'DM Sans',sans-serif}
  .connection{display:none!important}
  .balance-chip{padding:7px 9px!important;font-size:10px!important}
 }
+
+
+/* KAZAMA AI — generator workspace layout refinement */
+:root{--kz-ink:#182033;--kz-muted:#788399;--kz-line:#e7eaf1;--kz-accent:#6654df;--kz-surface:#fff;--kz-canvas:#f5f6fa}
+.shell{background:var(--kz-canvas)!important;color:var(--kz-ink)!important}
+.sidebar{background:#fff!important;border-right:1px solid var(--kz-line)!important}
+.brand{padding:24px 20px 26px!important}
+.brandmark{border-radius:13px!important;background:linear-gradient(145deg,#7667f0,#5140c8)!important;box-shadow:0 7px 18px #6654df30!important}
+.navitem{border-radius:10px!important;margin:3px 10px!important;padding:11px 13px!important;transition:background .18s ease,color .18s ease!important}
+.navitem.selected{background:#f0efff!important;color:#5847d3!important;font-weight:700!important}
+.navcaption{letter-spacing:.13em!important;font-size:9px!important;color:#9aa3b3!important;padding-left:20px!important}
+.topbar{background:rgba(255,255,255,.94)!important;border-bottom:1px solid var(--kz-line)!important;backdrop-filter:blur(14px)!important}
+.page{max-width:1540px!important;margin:0 auto!important;padding:30px 34px 42px!important}
+.pagehead{margin-bottom:22px!important}
+.pagehead h1{font-size:clamp(30px,3vw,42px)!important;letter-spacing:-1.5px!important;color:#182033!important}
+.pagehead p{max-width:720px!important;line-height:1.65!important;color:#788399!important}
+.workgrid{display:grid!important;grid-template-columns:minmax(0,1.08fr) minmax(340px,.92fr)!important;align-items:start!important;gap:22px!important}
+.formpanel,.outputpanel{background:#fff!important;border:1px solid #e7eaf1!important;border-radius:18px!important;box-shadow:0 8px 28px rgba(31,42,72,.045)!important}
+.formpanel{padding:24px!important;gap:21px!important}
+.outputpanel{padding:21px!important;position:sticky!important;top:84px!important}
+.field{gap:9px!important}
+.field>label,.field label:first-child{font-size:10px!important;letter-spacing:.09em!important;color:#68748b!important;font-weight:750!important}
+.field input:not([type=file]),.field select,.field textarea,.model-select{border:1px solid #e1e5ee!important;border-radius:11px!important;background:#fbfcfe!important;color:#202a40!important;min-height:46px!important;padding:12px 14px!important;outline:none!important;box-shadow:none!important}
+.field textarea{min-height:126px!important;line-height:1.65!important;resize:vertical!important}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#8c80ee!important;box-shadow:0 0 0 3px #7667f018!important}
+.fieldgrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important}
+.modegrid,.studio-mode-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+.modecard,.studio-mode-card{min-width:0!important;min-height:76px!important;text-align:left!important;padding:14px 15px!important;border:1px solid #e5e8f0!important;border-radius:12px!important;background:#fbfcff!important;color:#263149!important}
+.modecard b{display:block!important;font-size:12px!important;line-height:1.4!important;margin-bottom:5px!important}
+.modecard small{display:block!important;color:#8590a3!important;font-size:10px!important;line-height:1.45!important}
+.modecard.chosen,.studio-mode-card.chosen{border-color:#8779ed!important;background:#f3f1ff!important;box-shadow:inset 0 0 0 1px #8779ed!important;color:#5141c7!important}
+.motion-choice-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:9px!important}
+.motion-choice{border:1px solid #e5e8f0!important;border-radius:11px!important;background:#fbfcff!important;padding:12px!important;color:#29334a!important}
+.motion-choice.active{border-color:#8275e9!important;background:#f3f1ff!important;color:#5141c7!important}
+.media-picker-row{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:10px!important;padding:12px!important;border:1px dashed #cfd5e2!important;border-radius:13px!important;background:#fafbfe!important}
+.media-add-tile{border-radius:11px!important;border:1px solid #e2e6ef!important;background:#fff!important;color:#6654df!important;min-width:76px!important;min-height:76px!important}
+.media-thumb-tile{border-radius:11px!important;overflow:hidden!important}
+.costline{border:1px solid #eceef4!important;background:#f8f9fc!important;border-radius:12px!important;padding:14px 15px!important;color:#5f6b81!important}
+.costline b{color:#252f46!important}
+.primary{border-radius:11px!important;background:linear-gradient(135deg,#7061e9,#5544ce)!important;box-shadow:0 7px 18px #6654df30!important;min-height:48px!important;font-weight:750!important}
+.primary:disabled{opacity:.48!important;box-shadow:none!important}
+.secondary{border-radius:10px!important}
+.preview{border:1px solid #e8ebf2!important;border-radius:14px!important;background:#f6f7fb!important;overflow:hidden!important;min-height:260px!important}
+.outputhead{margin-bottom:15px!important}
+.livepill{border-radius:99px!important}
+.model-selected-info{border:1px solid #e9eaf4!important;background:#f8f8ff!important;border-radius:12px!important;padding:14px!important}
+.model-selected-info strong{color:#5949d0!important}
+.fineprint{color:#8993a5!important;line-height:1.55!important}
+@media(max-width:1080px){.workgrid{grid-template-columns:minmax(0,1fr)!important}.outputpanel{position:static!important}.page{padding:25px 22px 36px!important}}
+@media(max-width:680px){.page{padding:20px 13px 30px!important}.formpanel{padding:16px!important;gap:17px!important}.outputpanel{padding:15px!important}.fieldgrid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}.modegrid,.studio-mode-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.motion-choice-grid{grid-template-columns:1fr!important}.pagehead h1{font-size:31px!important}.workgrid{gap:14px!important}.preview{min-height:220px!important}}
+@media(max-width:390px){.fieldgrid{grid-template-columns:1fr!important}.modegrid,.studio-mode-grid{grid-template-columns:1fr!important}}
