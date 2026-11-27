@@ -140,3 +140,17 @@ alter table public.telegram_account_links enable row level security;
 alter table public.telegram_link_codes enable row level security;
 revoke all on public.telegram_account_links from public, anon, authenticated;
 revoke all on public.telegram_link_codes from public, anon, authenticated;
+
+
+-- Telegram albums used to collect Motion Control reference video + identity photo.
+create table if not exists public.telegram_media_groups (
+  media_group_id text primary key,
+  telegram_user_id bigint not null,
+  telegram_chat_id bigint not null,
+  prompt text not null default '',
+  video_file_id text,
+  photo_file_id text,
+  created_at timestamptz not null default now()
+);
+alter table public.telegram_media_groups enable row level security;
+revoke all on public.telegram_media_groups from public, anon, authenticated;
