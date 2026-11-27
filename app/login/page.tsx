@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [busy,setBusy]=useState(false);
   const [message,setMessage]=useState("");
   const [error,setError]=useState("");
+  function destination(){const requested=new URLSearchParams(window.location.search).get("next")||"/studio";return requested.startsWith("/")&&!requested.startsWith("//")?requested:"/studio";}
   function client(){
     const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -25,7 +26,7 @@ export default function LoginPage() {
       if(verifyMode){
         const result=await supabase.auth.verifyOtp({email:email.trim(),token:code.trim(),type:"signup"});
         if(result.error) throw result.error;
-        location.href="/studio";
+        location.href=destination();
         return;
       }
       if(signup){
