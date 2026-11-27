@@ -16,7 +16,18 @@ function dbAdmin() {
   if (!url || !key) throw new Error("Database belum dikonfigurasi.");
   return createClient(url, key, { auth: { persistSession: false } });
 }
-async function userOrThrow() {
+async function userOrThrow(request?: NextRequest) {
+  const internal = request?.headers.get("x-kazama-internal-secret");
+  if (internal && internal === process.env.TELEGRAM_WEBHOOK_SECRET) {
+    const telegramId = Number(request?.headers.get("x-kazama-telegram-user-id") || 0);
+    if (!Number.isSafeInteger(telegramId) || telegramId <= 0) throw Object.assign(new Error("Identitas Telegram tidak valid."), { status: 401 });
+    const db = dbAdmin();
+    const { data: link, error } = await db.from("telegram_native_accounts").select("user_id").eq("telegram_user_id", telegramId).single();
+    if (error || !link) throw Object.assign(new Error("Akun Telegram belum dibuat. Ketik /start pada bot."), { status: 401 });
+    const { data: profile, error: profileError } = await db.from("profiles").select("id,email").eq("id", link.user_id).single();
+    if (profileError || !profile) throw Object.assign(new Error("Profil Telegram tidak ditemukan."), { status: 401 });
+    return { id: profile.id, email: profile.email };
+  }
   const supabase = await supabaseServer();
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) throw Object.assign(new Error("Silakan masuk terlebih dahulu."), { status: 401 });
@@ -212,7 +223,7 @@ async function uploadDataUrl(db: ReturnType<typeof dbAdmin>, userId: string, ite
 
 export async function GET(request: NextRequest) {
   let user: any;
-  try { user = await userOrThrow(); }
+  try { user = await userOrThrow(request); }
   catch (error: any) { return NextResponse.json({ ok: false, error: error.message }, { status: error.status || 401 }); }
   const resource = request.nextUrl.searchParams.get("resource") || "models";
   try {
