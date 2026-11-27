@@ -31,6 +31,22 @@ async function say(chatId: number, text: string, replyMarkup?: any) {
 }
 async function sendMenu(chatId: number, firstName = "") {
   const name = firstName ? ` ${firstName}` : "";
+  await telegram("setMyCommands",{commands:[
+    {command:"start",description:"Buka menu utama"},
+    {command:"menu",description:"Tampilkan layanan"},
+    {command:"link",description:"Tautkan akun KAZAMA"},
+    {command:"saldo",description:"Lihat saldo Credit"},
+    {command:"video",description:"Buat video AI"},
+    {command:"i2v",description:"Buat video dari foto"},
+    {command:"motion",description:"Motion Control"},
+    {command:"image",description:"Buat gambar AI"},
+    {command:"music",description:"Buat musik AI"},
+    {command:"tts",description:"Teks menjadi ucapan"},
+    {command:"voice",description:"Voice Generator"},
+    {command:"clone",description:"Voice Cloning"},
+    {command:"status",description:"Cek status tugas"},
+    {command:"help",description:"Bantuan"}
+  ]}).catch(()=>null);
   return say(chatId,
     `Halo${name}! 👋 Selamat datang di KAZAMA AI.\n\nPilih layanan di bawah. Akun Telegram perlu ditautkan ke akun web KAZAMA agar saldo Credit dan riwayat tetap satu.`,
     { inline_keyboard: [
