@@ -83,6 +83,28 @@ async function sendMenu(chatId: number, firstName = "") {
     ] }
   );
 }
+async function checkRequiredGroup(chatId:number, telegramUserId:number):Promise<boolean> {
+  const db=dbAdmin();
+  const {data:config,error}=await db.from("telegram_bot_config").select("required_group_chat_id,required_group_invite_link,required_group_title").eq("id",1).single();
+  if(error||!config?.required_group_chat_id){
+    await say(chatId,"🔒 Akses KAZAMA AI belum diaktifkan. Admin perlu menambahkan @KazamaAIBot sebagai admin di grup KAZAMA AI INFO, lalu kirim satu pesan di grup tersebut.");
+    return false;
+  }
+  try {
+    const result=await telegram("getChatMember",{chat_id:config.required_group_chat_id,user_id:telegramUserId});
+    const status=String(result.result?.status||"left");
+    const allowed=status==="creator"||status==="administrator"||status==="member"||(status==="restricted"&&result.result?.is_member===true);
+    if(allowed)return true;
+  } catch {}
+  await say(chatId,"🔐 Untuk menggunakan KAZAMA AI, kamu wajib bergabung ke grup resmi KAZAMA AI INFO terlebih dahulu. Setelah bergabung, tekan tombol Cek Keanggotaan.",{
+    inline_keyboard:[
+      [{text:"📢 Gabung KAZAMA AI INFO",url:config.required_group_invite_link||"https://t.me/+U-_-JOE6PgZiNGNl"}],
+      [{text:"🔄 Cek Keanggotaan",callback_data:"check_join"}]
+    ]
+  });
+  return false;
+}
+
 async function sendBalance(chatId: number, telegramUserId: number) {
   const db = dbAdmin();
   const { data: account, error: accountError } = await db.from("telegram_native_accounts")
@@ -221,6 +243,14 @@ export async function POST(req: NextRequest) {
       await telegram("answerCallbackQuery", { callback_query_id: callback.id });
       const chatId = callback.message?.chat?.id;
       if (!chatId) return NextResponse.json({ ok: true });
+      if(action==="check_join") {
+        if(await checkRequiredGroup(Number(chatId),Number(callback.from?.id))) {
+          await ensureTelegramAccount(Number(callback.from?.id),callback.from||{},Number(chatId));
+          await say(Number(chatId),"✅ Keanggotaan grup terverifikasi. Akun Telegram kamu siap digunakan. Ketik /menu untuk membuka layanan.");
+        }
+        return NextResponse.json({ok:true});
+      }
+      if(!(await checkRequiredGroup(Number(chatId),Number(callback.from?.id)))) return NextResponse.json({ok:true});
       await ensureTelegramAccount(Number(callback.from?.id),callback.from||{},Number(chatId));
       const action = String(callback.data || "");
       if (action === "account_balance") await sendBalance(chatId, Number(callback.from.id));
@@ -248,6 +278,20 @@ export async function POST(req: NextRequest) {
     if (chatId) errorChatId=Number(chatId);
     const text = String(message?.text || message?.caption || "").trim();
     if (!chatId) return NextResponse.json({ ok: true });
+    if(message.chat?.type==="group"||message.chat?.type==="supergroup") {
+      if(String(message.chat?.title||"").trim().toLowerCase()==="kazama ai info") {
+        const {error:configError}=await dbAdmin().from("telegram_bot_config").update({
+          required_group_chat_id:Number(chatId),
+          required_group_title:String(message.chat.title),
+          required_group_invite_link:"https://t.me/+U-_-JOE6PgZiNGNl",
+          updated_at:new Date().toISOString()
+        }).eq("id",1);
+        if(configError)throw new Error("Grup wajib belum bisa disimpan.");
+        await say(Number(chatId),"✅ Grup KAZAMA AI INFO berhasil dikenali sebagai grup wajib KAZAMA AI. Pastikan bot tetap menjadi admin agar pengecekan anggota berfungsi.");
+      }
+      return NextResponse.json({ok:true});
+    }
+    if(!(await checkRequiredGroup(Number(chatId),Number(message.from?.id)))) return NextResponse.json({ok:true});
     await ensureTelegramAccount(Number(message.from?.id),message.from||{},Number(chatId));
     if (message?.media_group_id && (message.video || message.photo?.length)) {
       const db=dbAdmin();
