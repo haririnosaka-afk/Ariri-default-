@@ -133,7 +133,7 @@ async function telegramFileData(fileId:string) {
   if(!file.ok)throw new Error("Gagal mengunduh file dari Telegram.");
   const type=file.headers.get("content-type")||"application/octet-stream";
   const bytes=Buffer.from(await file.arrayBuffer());
-  if(bytes.length>18*1024*1024)throw new Error("File terlalu besar. Maksimal 18 MB.");
+  if(bytes.length>2.8*1024*1024)throw new Error("File terlalu besar. Maksimal 2,8 MB per file agar aman diproses.");
   return "data:"+type+";base64,"+bytes.toString("base64");
 }
 async function runStudio(chatId:number, telegramUserId:number, origin:string, resource:string, payload:any, label:string) {
@@ -244,8 +244,10 @@ export async function POST(req: NextRequest) {
     if (message?.media_group_id && (message.video || message.photo?.length)) {
       const db=dbAdmin();
       const groupId=String(message.media_group_id);
-      let incomingPrompt=String(message.caption||"").trim();
-      incomingPrompt=incomingPrompt.replace("/motion","").replace("@KazamaAIBot","").trim();
+      const {data:existingGroup}=await db.from("telegram_media_groups").select("media_group_id").eq("media_group_id",groupId).maybeSingle();
+      const caption=String(message.caption||"").trim();
+      if(!existingGroup&&!/^\\/motion(?:@KazamaAIBot)?(?:\\s|$)/i.test(caption))return NextResponse.json({ok:true});
+      let incomingPrompt=caption.replace(/^\\/motion(?:@KazamaAIBot)?\\s*/i,"").trim();
       const patch:any={media_group_id:groupId,telegram_user_id:Number(message.from?.id),telegram_chat_id:Number(chatId)};
       if(incomingPrompt)patch.prompt=incomingPrompt;
       if(message.video)patch.video_file_id=message.video.file_id;
@@ -265,7 +267,7 @@ export async function POST(req: NextRequest) {
     }
     if (/^\/(start|menu)(?:\s|$)/i.test(text)) await sendMenu(chatId, message.from?.first_name || "");
     else if (/^\/help(?:\s|$)/i.test(text)) {
-      await say(chatId, "Perintah KAZAMA AI:\n/start atau /menu — menu utama\n/link KODE — tautkan akun KAZAMA\n/saldo — cek saldo Credit\n/help — bantuan");
+      await say(chatId, "Perintah KAZAMA AI:\n/start atau /menu — menu utama\n/link KODE — tautkan akun\n/saldo — cek Credit\n/video PROMPT — buat video\n/i2v PROMPT + foto — video dari foto\n/motion PROMPT — album video + foto\n/image PROMPT — buat gambar\n/music PROMPT — buat musik\n/tts TEKS — teks ke ucapan\n/voice TEKS — voice generator\n/clone — voice cloning dengan audio\n/status — cek tugas terakhir\n/help — bantuan");
     } else if (/^\/link(?:\s|$)/i.test(text)) {
       await linkAccount(chatId, message.from || {}, text.replace(/^\/link\s*/i, ""));
     } else if (text === "/saldo" || text.startsWith("/saldo ")) {
