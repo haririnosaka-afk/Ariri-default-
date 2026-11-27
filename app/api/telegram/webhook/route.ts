@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const maxDuration = 300;
 
 function dbAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
