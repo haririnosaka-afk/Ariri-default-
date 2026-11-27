@@ -24,9 +24,9 @@ async function userOrThrow(request?: NextRequest) {
     const db = dbAdmin();
     const { data: link, error } = await db.from("telegram_native_accounts").select("user_id").eq("telegram_user_id", telegramId).single();
     if (error || !link) throw Object.assign(new Error("Akun Telegram belum dibuat. Ketik /start pada bot."), { status: 401 });
-    const { data: profile, error: profileError } = await db.from("profiles").select("id,email").eq("id", link.user_id).single();
-    if (profileError || !profile) throw Object.assign(new Error("Profil Telegram tidak ditemukan."), { status: 401 });
-    return { id: profile.id, email: profile.email };
+    const { data: authUser, error: authError } = await db.auth.admin.getUserById(link.user_id);
+    if (authError || !authUser?.user) throw Object.assign(new Error("Profil Telegram tidak ditemukan."), { status: 401 });
+    return { id: authUser.user.id, email: authUser.user.email || null };
   }
   const supabase = await supabaseServer();
   const { data, error } = await supabase.auth.getUser();
