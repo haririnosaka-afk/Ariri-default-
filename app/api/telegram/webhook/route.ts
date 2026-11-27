@@ -166,9 +166,9 @@ async function posbotCall(origin:string,telegramUserId:number,body:any) {
   if(!response.ok||data.ok===false)throw new Error(String(data.error||"Generator gagal memproses permintaan."));
   return data;
 }
-async function showVideoModels(chatId:number,origin:string) {
+async function showVideoModels(chatId:number,telegramUserId:number,origin:string) {
   const response=await fetch(origin+"/api/posbot?resource=video-models",{
-    headers:{"x-kazama-internal-secret":process.env.TELEGRAM_WEBHOOK_SECRET||"","x-kazama-telegram-user-id":"1"},
+    headers:{"x-kazama-internal-secret":process.env.TELEGRAM_WEBHOOK_SECRET||"","x-kazama-telegram-user-id":String(telegramUserId)},
     cache:"no-store",signal:AbortSignal.timeout(30000)
   });
   const data=await response.json().catch(()=>({}));
@@ -244,7 +244,7 @@ async function handleGeneration(chatId:number, telegramUserId:number, origin:str
     const media=[await telegramFileData(photoId)];
     return runStudio(chatId,telegramUserId,origin,"generate",{mode:"i2v",prompt,media,ratio:1,resolution:1080,duration:15},"Image to Video");
   }
-  if(command==="video") { await showVideoModels(chatId,origin); return; }
+  if(command==="video") { await showVideoModels(chatId,telegramUserId,origin); return; }
   if(command==="image") return runStudio(chatId,telegramUserId,origin,"image",{model:"nano_banana_2",prompt,aspect:"auto",resolution:"1K"},"Image Generator");
   if(command==="music") return runStudio(chatId,telegramUserId,origin,"generate",{mode:"music",prompt},"Music Generator");
   if(command==="tts") return runStudio(chatId,telegramUserId,origin,"generate",{mode:"tts",prompt,voice:"Achernar"},"Text to Speech");
