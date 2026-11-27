@@ -46,7 +46,7 @@ export async function GET(_req: NextRequest) {
             { command: "saldo", description: "Lihat saldo Credit" },
             { command: "video", description: "Buat video dari prompt teks" },
             { command: "image", description: "Buat gambar dari prompt teks" },
-            { command: "status", description: "Periksa tugas generator terakhir" }
+            { command: "status", description: "Periksa tugas generator terakhir" },\n            { command: "music", description: "Buat musik dari prompt" },\n            { command: "tts", description: "Ubah teks menjadi ucapan" },\n            { command: "voice", description: "Buat voice dari teks" },\n            { command: "motion", description: "Motion Control dengan video dan foto" },\n            { command: "i2v", description: "Buat video dari foto" },\n            { command: "clone", description: "Kloning voice dari audio" }
           ]
         }),
         cache: "no-store"
