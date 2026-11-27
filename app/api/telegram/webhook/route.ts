@@ -247,7 +247,8 @@ export async function POST(req: NextRequest) {
       const {data:existingGroup}=await db.from("telegram_media_groups").select("media_group_id").eq("media_group_id",groupId).maybeSingle();
       const caption=String(message.caption||"").trim();
       if(!existingGroup&&!caption.toLowerCase().startsWith("/motion"))return NextResponse.json({ok:true});
-      const separator=caption.indexOf(" ");\n      let incomingPrompt=separator>=0?caption.slice(separator+1).trim():"";
+      const separator=caption.indexOf(" ");
+      let incomingPrompt=separator>=0?caption.slice(separator+1).trim():"";
       const patch:any={media_group_id:groupId,telegram_user_id:Number(message.from?.id),telegram_chat_id:Number(chatId)};
       if(incomingPrompt)patch.prompt=incomingPrompt;
       if(message.video)patch.video_file_id=message.video.file_id;
