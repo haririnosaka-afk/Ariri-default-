@@ -213,6 +213,7 @@ async function handleGeneration(chatId:number, telegramUserId:number, origin:str
 }
 
 export async function POST(req: NextRequest) {
+  let errorChatId:number|undefined;
   const expected = process.env.TELEGRAM_WEBHOOK_SECRET;
   const supplied = req.headers.get("x-telegram-bot-api-secret-token");
   if (!expected || supplied !== expected) return NextResponse.json({ ok: false }, { status: 401 });
@@ -237,8 +238,31 @@ export async function POST(req: NextRequest) {
 
     const message = update.message;
     const chatId = message?.chat?.id;
+    if (chatId) errorChatId=Number(chatId);
     const text = String(message?.text || message?.caption || "").trim();
     if (!chatId) return NextResponse.json({ ok: true });
+    if (message?.media_group_id && (message.video || message.photo?.length)) {
+      const db=dbAdmin();
+      const groupId=String(message.media_group_id);
+      let incomingPrompt=String(message.caption||"").trim();
+      incomingPrompt=incomingPrompt.replace("/motion","").replace("@KazamaAIBot","").trim();
+      const patch:any={media_group_id:groupId,telegram_user_id:Number(message.from?.id),telegram_chat_id:Number(chatId)};
+      if(incomingPrompt)patch.prompt=incomingPrompt;
+      if(message.video)patch.video_file_id=message.video.file_id;
+      if(message.photo?.length)patch.photo_file_id=message.photo[message.photo.length-1].file_id;
+      const {error:upsertError}=await db.from("telegram_media_groups").upsert(patch,{onConflict:"media_group_id"});
+      if(upsertError)throw upsertError;
+      const {data:group,error:readError}=await db.from("telegram_media_groups").select("*").eq("media_group_id",groupId).single();
+      if(readError||!group)throw new Error("Media album belum dapat dibaca.");
+      if(group.video_file_id&&group.photo_file_id){
+        const media=[await telegramFileData(group.video_file_id),await telegramFileData(group.photo_file_id)];
+        await db.from("telegram_media_groups").delete().eq("media_group_id",groupId);
+        await runStudio(Number(chatId),Number(message.from?.id),new URL(req.url).origin,"generate",{mode:"r2v",prompt:group.prompt||"Preserve the reference identity and recreate the source video's motion.",media,ratio:1,resolution:1080,duration:10},"Motion Control");
+      } else {
+        await say(Number(chatId),"📎 Media diterima. Kirim video sumber dan foto identitas sebagai satu album Telegram (pilih keduanya sekaligus), lalu beri caption /motion di album tersebut.");
+      }
+      return NextResponse.json({ok:true});
+    }
     if (/^\/(start|menu)(?:\s|$)/i.test(text)) await sendMenu(chatId, message.from?.first_name || "");
     else if (/^\/help(?:\s|$)/i.test(text)) {
       await say(chatId, "Perintah KAZAMA AI:\n/start atau /menu — menu utama\n/link KODE — tautkan akun KAZAMA\n/saldo — cek saldo Credit\n/help — bantuan");
@@ -257,6 +281,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("KAZAMA Telegram webhook:", error);
+    if(errorChatId) { try { await say(errorChatId,"⚠️ Permintaan belum berhasil diproses. "+(error instanceof Error?error.message:"Silakan coba lagi beberapa saat.")); } catch {} }
     return NextResponse.json({ ok: true });
   }
 }
