@@ -30,6 +30,45 @@ export async function GET(req: NextRequest) {
     if (error) throw error;
     if (!order) return NextResponse.json({ ok: false, error: "Transaksi tidak ditemukan." }, { status: 404 });
 
+    // Webhook is the primary confirmation path. This status check is a fallback
+    // in case a callback is delayed or the merchant listener reconnects.
+    if (order.status === "pending" && process.env.CASAKU_LICENSE_KEY) {
+      try {
+        const checkResponse = await fetch("https://api.casaku.id/api/generate/check-status", {
+          method: "POST",
+          headers: { "x-license-key": process.env.CASAKU_LICENSE_KEY, "Content-Type": "application/json" },
+          body: JSON.stringify({ transactionId }),
+          cache: "no-store",
+          signal: AbortSignal.timeout(8000),
+        });
+        const checkRaw = await checkResponse.text();
+        const checkData = checkRaw ? JSON.parse(checkRaw) : {};
+        const remote = checkData?.data || checkData;
+        const remoteStatus = String(remote?.status || checkData?.status || "").toLowerCase();
+        if (checkResponse.ok && remoteStatus === "paid") {
+          const { error: settleError } = await db.rpc("settle_casaku_payment", {
+            p_transaction_id: transactionId,
+            p_amount_idr: Number(order.amount_idr),
+            p_payload: { ...remote, transactionId, amount: Number(order.amount_idr), status: "paid" },
+          });
+          if (!settleError) {
+            order.status = "paid";
+            order.credited_at = new Date().toISOString();
+          }
+        } else if (checkResponse.ok && ["expired", "cancel"].includes(remoteStatus)) {
+          await db.from("casaku_payment_orders").update({ status: remoteStatus }).eq("transaction_id", transactionId);
+          order.status = remoteStatus;
+        }
+      } catch {
+        // Keep the local pending state; the next poll or webhook can settle it.
+      }
+    }
+
+    if (order.status === "pending" && new Date(order.expires_at).getTime() <= Date.now()) {
+      await db.from("casaku_payment_orders").update({ status: "expired" }).eq("transaction_id", transactionId);
+      order.status = "expired";
+    }
+
     const { data: profile, error: profileError } = await db.from("profiles")
       .select("balance").eq("id", authData.user.id).single();
     if (profileError) throw profileError;
