@@ -211,10 +211,16 @@ export async function POST(req: NextRequest) {
       await say(chatId, "Perintah KAZAMA AI:\n/start atau /menu — menu utama\n/link KODE — tautkan akun KAZAMA\n/saldo — cek saldo Credit\n/help — bantuan");
     } else if (/^\/link(?:\s|$)/i.test(text)) {
       await linkAccount(chatId, message.from || {}, text.replace(/^\/link\s*/i, ""));
-    } else if (/^\/saldo(?:\s|$)/i.test(text)) {
+    } else if (/^\\/saldo(?:\\s|$)/i.test(text)) {
       await sendBalance(chatId, Number(message.from?.id));
+    } else if (/^\\/video(?:\\s|$)/i.test(text)) {
+      await startTextGeneration(chatId, Number(message.from?.id), "video", text.replace(/^\\/video\\s*/i, ""));
+    } else if (/^\\/image(?:\\s|$)/i.test(text)) {
+      await startTextGeneration(chatId, Number(message.from?.id), "image", text.replace(/^\\/image\\s*/i, ""));
+    } else if (/^\\/status(?:\\s|$)/i.test(text)) {
+      await sendLatestStatus(chatId, Number(message.from?.id));
     } else {
-      await say(chatId, "Gunakan /menu untuk memilih layanan atau /saldo untuk melihat Credit. Untuk menghubungkan akun, kirim /link KODE.");
+      await say(chatId, "Gunakan /menu, /saldo, /video PROMPT, /image PROMPT, atau /status.");
     }
     return NextResponse.json({ ok: true });
   } catch (error) {
