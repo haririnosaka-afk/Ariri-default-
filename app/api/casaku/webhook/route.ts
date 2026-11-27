@@ -5,6 +5,19 @@ import { createClient } from "@supabase/supabase-js";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// Casaku may verify the webhook URL with GET/HEAD before sending payment events.
+export async function GET() {
+  return NextResponse.json({ ok: true, service: "casaku-webhook" }, { status: 200 });
+}
+
+export async function HEAD() {
+  return new NextResponse(null, { status: 200 });
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 200, headers: { Allow: "GET, HEAD, POST, OPTIONS" } });
+}
+
 function adminDb() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
