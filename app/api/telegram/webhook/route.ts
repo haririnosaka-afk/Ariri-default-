@@ -39,7 +39,7 @@ async function sendMenu(chatId: number, firstName = "") {
       [{ text: "🎵 Music Generator", callback_data: "tool_music" }],
       [{ text: "🎙️ Voice Studio", callback_data: "tool_voice" }],
       [{ text: "💳 Saldo Credit", callback_data: "account_balance" }],
-      [{ text: "🔗 Cara tautkan akun", callback_data: "account_link" }],
+      [{ text: "📚 Riwayat", callback_data: "account_history" }],\n      [{ text: "🔗 Tautkan akun", callback_data: "account_link" }],\n      [{ text: "🌐 Buka Website", url: "https://kazamaai.my.id" }],
     ] }
   );
 }
@@ -152,8 +152,25 @@ async function sendLatestStatus(chatId:number, telegramUserId:number, origin:str
   if(linkError||!link)throw new Error("Tautkan akun KAZAMA terlebih dahulu dengan /link KODE.");
   const {data:jobs,error}=await db.from("generation_jobs").select("provider_job_id,model,prompt,status,created_at").eq("user_id",link.user_id).order("created_at",{ascending:false}).limit(5);
   if(error||!jobs?.length){await say(chatId,"Belum ada tugas generator di riwayat akunmu.");return;}
+  const latest=jobs[0];
+  if(latest?.provider_job_id){
+    try{
+      const secret=process.env.TELEGRAM_WEBHOOK_SECRET!;
+      const response=await fetch(origin+"/api/studio?resource=job&id="+encodeURIComponent(latest.provider_job_id),{headers:{"x-kazama-internal-secret":secret,"x-kazama-telegram-user-id":String(telegramUserId)},cache:"no-store",signal:AbortSignal.timeout(30000)});
+      const data=await response.json();
+      const job=data.job||data.data||data;
+      const status=String(job.status||job.state||latest.status||"processing");
+      const url=String(job.url||job.video_url||job.output_url||job.result_url||"");
+      if(url&&/^(completed|done|success|succeeded)$/i.test(status)){
+        await telegram("sendVideo",{chat_id:chatId,video:url,caption:"✅ Video KAZAMA AI selesai.\nID: "+latest.provider_job_id});
+        return;
+      }
+      await say(chatId,"📽️ TUGAS TERAKHIR\n\nModel: "+(latest.model||"KAZAMA Generator")+"\nStatus: "+status+"\nID: "+latest.provider_job_id+"\n\nKirim /status lagi beberapa saat untuk memperbarui.");
+      return;
+    }catch(e){console.error("Telegram status check:",e);}
+  }
   const lines=jobs.map((j:any,i:number)=>`${i+1}. ${j.model||"KAZAMA Generator"} · ${j.status||"queued"}\nID: ${j.provider_job_id}`);
-  await say(chatId,"📚 RIWAYAT GENERATOR\n\n"+lines.join("\n\n")+"\n\nLihat hasil lengkap di menu My Creations pada website KAZAMA.");
+  await say(chatId,"📚 RIWAYAT GENERATOR\n\n"+lines.join("\n\n"));
 }
 async function handleGeneration(chatId:number, telegramUserId:number, origin:string, command:string, prompt:string, message:any) {
   if(!prompt.trim() && !["clone"].includes(command)) { await say(chatId,"Tulis prompt setelah perintah.\nContoh: /"+command+" cinematic shot of a city at sunset"); return; }
