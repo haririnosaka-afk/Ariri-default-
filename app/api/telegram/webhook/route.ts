@@ -39,7 +39,9 @@ async function sendMenu(chatId: number, firstName = "") {
       [{ text: "🎵 Music Generator", callback_data: "tool_music" }],
       [{ text: "🎙️ Voice Studio", callback_data: "tool_voice" }],
       [{ text: "💳 Saldo Credit", callback_data: "account_balance" }],
-      [{ text: "📚 Riwayat", callback_data: "account_history" }],\n      [{ text: "🔗 Tautkan akun", callback_data: "account_link" }],\n      [{ text: "🌐 Buka Website", url: "https://kazamaai.my.id" }],
+      [{ text: "📚 Riwayat", callback_data: "account_history" }],
+      [{ text: "🔗 Tautkan akun", callback_data: "account_link" }],
+      [{ text: "🌐 Buka Website", url: "https://kazamaai.my.id" }],
     ] }
   );
 }
