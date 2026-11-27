@@ -43,7 +43,10 @@ export async function GET(_req: NextRequest) {
             { command: "menu", description: "Tampilkan menu layanan" },
             { command: "help", description: "Bantuan penggunaan bot" },
             { command: "link", description: "Tautkan akun KAZAMA" },
-            { command: "saldo", description: "Lihat saldo Credit" }
+            { command: "saldo", description: "Lihat saldo Credit" },
+            { command: "video", description: "Buat video dari prompt teks" },
+            { command: "image", description: "Buat gambar dari prompt teks" },
+            { command: "status", description: "Periksa tugas generator terakhir" }
           ]
         }),
         cache: "no-store"
