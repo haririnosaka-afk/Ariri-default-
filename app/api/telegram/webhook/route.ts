@@ -179,7 +179,7 @@ async function showVideoModels(chatId:number,telegramUserId:number,origin:string
   });
   if(!models.length)throw new Error("Belum ada model video yang tersedia.");
   const rows=models.slice(0,40).map((m:any)=>[{
-    text:(String(m.name||m.title||m.model_key).replace(/nexa\\s*bot|pos\\s*bot/ig,"").trim().slice(0,42)+" · "+String(m.customer_tokens??"-")+" Credit").slice(0,60),
+    text:(String(m.name||m.title||m.model_key).replace(/nexa\s*bot|pos\s*bot/ig,"").trim().slice(0,42)+" · "+String(m.customer_tokens??"-")+" Credit").slice(0,60),
     callback_data:"vmodel:"+String(m.model_key).slice(0,48)
   }]);
   await say(chatId,"🎬 PILIH MODEL VIDEO\n\nPilih model yang ingin kamu gunakan. Harga Credit ditampilkan di setiap pilihan.",{inline_keyboard:rows});
