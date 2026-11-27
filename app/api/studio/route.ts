@@ -5,12 +5,25 @@ export const dynamic="force-dynamic";
 export const maxDuration=300;
 const BASE=(process.env.PRIVATE_ENGINE_URL||"").replace(/\/+$/,"")+"/api/v1";
 function adminDb(){const url=process.env.NEXT_PUBLIC_SUPABASE_URL;const key=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!url||!key)throw new Error("Database token belum dikonfigurasi.");return createClient(url,key,{auth:{persistSession:false}})}
-async function currentUser(){const s=await supabaseServer();const {data,error}=await s.auth.getUser();if(error||!data.user)throw Object.assign(new Error("Silakan masuk terlebih dahulu."),{status:401});return data.user}
+async function currentUser(req?:NextRequest){
+ const internal=req?.headers.get("x-kazama-internal-secret");
+ if(internal && internal===process.env.TELEGRAM_WEBHOOK_SECRET){
+  const telegramId=Number(req?.headers.get("x-kazama-telegram-user-id")||0);
+  if(!Number.isSafeInteger(telegramId)||telegramId<=0)throw Object.assign(new Error("Identitas Telegram tidak valid."),{status:401});
+  const db=adminDb();
+  const {data:link,error}=await db.from("telegram_account_links").select("user_id").eq("telegram_user_id",telegramId).single();
+  if(error||!link)throw Object.assign(new Error("Akun Telegram belum ditautkan ke KAZAMA."),{status:401});
+  const {data:profile,error:profileError}=await db.from("profiles").select("id,email").eq("id",link.user_id).single();
+  if(profileError||!profile)throw Object.assign(new Error("Profil KAZAMA tidak ditemukan."),{status:401});
+  return {id:profile.id,email:profile.email};
+ }
+ const s=await supabaseServer();const {data,error}=await s.auth.getUser();if(error||!data.user)throw Object.assign(new Error("Silakan masuk terlebih dahulu."),{status:401});return data.user
+}
 function isAdmin(email?:string){return !!email&&!!process.env.KAZAMA_ADMIN_EMAIL&&email.toLowerCase()===process.env.KAZAMA_ADMIN_EMAIL.toLowerCase()}
 function headers(){const key=process.env.NEXABOT_API_KEY;if(!key)throw new Error("Engine belum dikonfigurasi. Hubungi administrator KAZAMA AI.");return {"x-api-key":key,"Content-Type":"application/json",Accept:"application/json"}}
 async function parse(r:Response){const raw=await r.text();let d:any;try{d=raw?JSON.parse(raw):{}}catch{throw new Error("Respons layanan tidak valid ("+r.status+").")}if(!r.ok||d?.ok===false)throw Object.assign(new Error(String(d?.error||d?.message||"Layanan sedang tidak tersedia ("+r.status+").").replace(/nexabot/ig,"layanan")),{status:r.status||502});return d}
 export async function GET(req:NextRequest){
- let user:any;try{user=await currentUser()}catch(e){return NextResponse.json({ok:false,error:e instanceof Error?e.message:String(e)},{status:(e as any)?.status||401})}
+ let user:any;try{user=await currentUser(req)}catch(e){return NextResponse.json({ok:false,error:e instanceof Error?e.message:String(e)},{status:(e as any)?.status||401})}
  const q=req.nextUrl.searchParams,resource=q.get("resource")||"settings";
  try{
   if(resource==="settings")return NextResponse.json({configured:Boolean(process.env.NEXABOT_API_KEY),email:user.email,is_admin:isAdmin(user.email)});
