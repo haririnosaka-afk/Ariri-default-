@@ -90,7 +90,7 @@ async function sendBalance(chatId: number, telegramUserId: number) {
 }
 
 
-const ENGINE_BASE = (process.env.PRIVATE_ENGINE_URL || "").replace(/\\/+$/, "") + "/api/v1";
+const ENGINE_BASE = (process.env.PRIVATE_ENGINE_URL || "").replace(/\/+$/, "") + "/api/v1";
 function engineHeaders() {
   const key = process.env.NEXABOT_API_KEY;
   if (!key) throw new Error("Generator sedang tidak tersedia. Hubungi admin KAZAMA.");
