@@ -152,3 +152,20 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
 .notification-item span{font:400 10px/1.55 'DM Sans',sans-serif;color:#aeb8c8;overflow-wrap:anywhere;word-break:break-word}
 .notification-item small{font:400 8px/1.4 'DM Sans',sans-serif;color:#7f8ba0;overflow-wrap:anywhere}
 @media(max-width:760px){.topright{gap:6px}.balance-chip{min-height:28px;padding:4px 7px;gap:5px}.balance-chip b{font-size:10px;max-width:62px}.balance-chip span{font-size:8px}.connection{max-width:68px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.notification-popover{right:34px;top:40px;width:min(310px,calc(100vw - 24px))}}
+
+
+/* Wallet package typography: keep package name and credit amount clearly separated */
+.pricecard{display:flex;flex-direction:column;align-items:flex-start;gap:0;min-width:0}
+.pricecard .package-ribbon{display:block;font:700 14px/1.35 Manrope,sans-serif;letter-spacing:.35px;color:#f1edff;margin:0 0 7px}
+.pricecard>small:not(.discountnote){display:block;font:600 12px/1.4 'DM Sans',sans-serif;letter-spacing:.45px;color:#aab4c6;margin:0 0 3px}
+.pricecard>b{display:block;font:800 26px/1.2 Manrope,sans-serif;letter-spacing:-.5px;margin:12px 0 3px;color:#c7b8ff;overflow-wrap:anywhere}
+.pricecard .discountnote{display:block;font:600 11px/1.45 'DM Sans',sans-serif;color:#aab4c6;margin-top:8px}
+.pricecard .bestbadge{display:block;font:800 10px/1.35 Manrope,sans-serif;letter-spacing:.6px;color:#d8ccff;margin-top:7px}
+@media(max-width:760px){
+ .pricecard{padding:16px 14px;min-height:154px}
+ .pricecard .package-ribbon{font-size:14px;margin-bottom:8px}
+ .pricecard>small:not(.discountnote){font-size:12px}
+ .pricecard>b{font-size:23px;margin-top:11px}
+ .pricecard .discountnote{font-size:10px}
+ .pricecard .bestbadge{font-size:10px}
+}
