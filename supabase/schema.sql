@@ -1,156 +1,89 @@
-create extension if not exists pgcrypto;
-
-create table if not exists public.profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
-  email text,
-  balance integer not null default 0 check (balance >= 0),
-  is_admin boolean not null default false,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-create table if not exists public.token_ledger (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references public.profiles(id) on delete cascade,
-  amount integer not null,
-  kind text not null check (kind in ('purchase','admin_credit','generate','refund','admin_adjustment')),
-  description text not null default '',
-  reference_id text,
-  created_at timestamptz not null default now()
-);
-create index if not exists token_ledger_user_created_idx on public.token_ledger(user_id, created_at desc);
-create table if not exists public.generation_jobs (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references public.profiles(id) on delete cascade,
-  token_reference text not null,
-  provider_job_id text not null,
-  created_at timestamptz not null default now(),
-  unique(user_id, token_reference),
-  unique(user_id, provider_job_id)
-);
-create index if not exists generation_jobs_user_ref_idx
-  on public.generation_jobs(user_id, token_reference);
-alter table public.generation_jobs enable row level security;
-revoke all on public.generation_jobs from public, anon, authenticated;
-
-create unique index if not exists token_ledger_reference_kind_unique
-  on public.token_ledger(user_id, reference_id, kind)
-  where reference_id is not null and kind in ('generate','refund');
-
-alter table public.profiles enable row level security;
-alter table public.token_ledger enable row level security;
-drop policy if exists "read own profile" on public.profiles;
-create policy "read own profile" on public.profiles for select using (auth.uid() = id);
-drop policy if exists "read own ledger" on public.token_ledger;
-create policy "read own ledger" on public.token_ledger for select using (auth.uid() = user_id);
-revoke insert, update, delete on public.profiles from anon, authenticated;
-revoke insert, update, delete on public.token_ledger from anon, authenticated;
-
-create or replace function public.handle_new_user()
-returns trigger language plpgsql security definer set search_path = public
-as $$
-begin
-  insert into public.profiles(id,email,balance) values(new.id,new.email,0)
-  on conflict (id) do update set email=excluded.email;
-  return new;
-end; $$;
-drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created after insert on auth.users
-for each row execute procedure public.handle_new_user();
-
-create or replace function public.spend_token(p_user_id uuid, p_reference_id text default null)
-returns integer language plpgsql security definer set search_path = public
-as $$
-declare new_balance integer;
-begin
-  if auth.role() <> 'service_role' then raise exception 'forbidden'; end if;
-  if p_reference_id is null or length(trim(p_reference_id)) = 0 then raise exception 'reference_required'; end if;
-  if exists(select 1 from public.token_ledger where user_id=p_user_id and reference_id=p_reference_id and kind='generate') then
-    select balance into new_balance from public.profiles where id=p_user_id;
-    return new_balance;
-  end if;
-  update public.profiles set balance=balance-1, updated_at=now()
-  where id=p_user_id and balance>=1 returning balance into new_balance;
-  if new_balance is null then raise exception 'insufficient_tokens'; end if;
-  insert into public.token_ledger(user_id,amount,kind,description,reference_id)
-  values(p_user_id,-1,'generate','Video/image/audio generation',p_reference_id);
-  return new_balance;
-end; $$;
-
-create or replace function public.refund_token(p_user_id uuid, p_reference_id text, p_reason text default 'Generation failed')
-returns integer language plpgsql security definer set search_path = public
-as $$
-declare new_balance integer;
-begin
-  if auth.role() <> 'service_role' then raise exception 'forbidden'; end if;
-  if p_reference_id is null or length(trim(p_reference_id)) = 0 then raise exception 'reference_required'; end if;
-  perform 1 from public.profiles where id=p_user_id for update;
-  if not found then raise exception 'user_not_found'; end if;
-  if exists(select 1 from public.token_ledger where user_id=p_user_id and reference_id=p_reference_id and kind='refund') then
-    select balance into new_balance from public.profiles where id=p_user_id;
-    return new_balance;
-  end if;
-  if not exists(select 1 from public.token_ledger where user_id=p_user_id and reference_id=p_reference_id and kind='generate') then
-    raise exception 'charge_not_found';
-  end if;
-  update public.profiles set balance=balance+1, updated_at=now() where id=p_user_id returning balance into new_balance;
-  insert into public.token_ledger(user_id,amount,kind,description,reference_id)
-  values(p_user_id,1,'refund',p_reason,p_reference_id);
-  return new_balance;
-end; $$;
-
-create or replace function public.admin_add_tokens(p_user_id uuid, p_amount integer, p_description text default 'Token purchase')
-returns integer language plpgsql security definer set search_path = public
-as $$
-declare new_balance integer;
-begin
-  if auth.role() <> 'service_role' then raise exception 'forbidden'; end if;
-  if p_amount < 1 or p_amount > 100000 then raise exception 'invalid_amount'; end if;
-  update public.profiles set balance=balance+p_amount, updated_at=now() where id=p_user_id returning balance into new_balance;
-  if new_balance is null then raise exception 'user_not_found'; end if;
-  insert into public.token_ledger(user_id,amount,kind,description)
-  values(p_user_id,p_amount,'purchase',p_description);
-  return new_balance;
-end; $$;
-
-revoke all on function public.spend_token(uuid,text) from public, anon, authenticated;
-revoke all on function public.refund_token(uuid,text,text) from public, anon, authenticated;
-revoke all on function public.admin_add_tokens(uuid,integer,text) from public, anon, authenticated;
-grant execute on function public.spend_token(uuid,text) to service_role;
-grant execute on function public.refund_token(uuid,text,text) to service_role;
-grant execute on function public.admin_add_tokens(uuid,integer,text) to service_role;
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import { supabaseServer } from "@/lib/supabase-server";
+export const dynamic="force-dynamic";
+export const maxDuration=300;
+const BASE=(process.env.PRIVATE_ENGINE_URL||"").replace(/\/+$/,"")+"/api/v1";
+function adminDb(){const url=process.env.NEXT_PUBLIC_SUPABASE_URL;const key=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!url||!key)throw new Error("Database token belum dikonfigurasi.");return createClient(url,key,{auth:{persistSession:false}})}
+async function currentUser(req?:NextRequest){
+ const internal=req?.headers.get("x-kazama-internal-secret");
+ if(internal && internal===process.env.TELEGRAM_WEBHOOK_SECRET){
+  const telegramId=Number(req?.headers.get("x-kazama-telegram-user-id")||0);
+  if(!Number.isSafeInteger(telegramId)||telegramId<=0)throw Object.assign(new Error("Identitas Telegram tidak valid."),{status:401});
+  const db=adminDb();
+  const {data:link,error}=await db.from("telegram_account_links").select("user_id").eq("telegram_user_id",telegramId).single();
+  if(error||!link)throw Object.assign(new Error("Akun Telegram belum ditautkan ke KAZAMA."),{status:401});
+  const {data:profile,error:profileError}=await db.from("profiles").select("id,email").eq("id",link.user_id).single();
+  if(profileError||!profile)throw Object.assign(new Error("Profil KAZAMA tidak ditemukan."),{status:401});
+  return {id:profile.id,email:profile.email};
+ }
+ const s=await supabaseServer();const {data,error}=await s.auth.getUser();if(error||!data.user)throw Object.assign(new Error("Silakan masuk terlebih dahulu."),{status:401});return data.user
+}
+function isAdmin(email?:string){return !!email&&!!process.env.KAZAMA_ADMIN_EMAIL&&email.toLowerCase()===process.env.KAZAMA_ADMIN_EMAIL.toLowerCase()}
+function headers(){const key=process.env.NEXABOT_API_KEY;if(!key)throw new Error("Engine belum dikonfigurasi. Hubungi administrator KAZAMA AI.");return {"x-api-key":key,"Content-Type":"application/json",Accept:"application/json"}}
+async function parse(r:Response){const raw=await r.text();let d:any;try{d=raw?JSON.parse(raw):{}}catch{throw new Error("Respons layanan tidak valid ("+r.status+").")}if(!r.ok||d?.ok===false)throw Object.assign(new Error(String(d?.error||d?.message||"Layanan sedang tidak tersedia ("+r.status+").").replace(/nexabot/ig,"layanan")),{status:r.status||502});return d}
+export async function GET(req:NextRequest){
+ let user:any;try{user=await currentUser(req)}catch(e){return NextResponse.json({ok:false,error:e instanceof Error?e.message:String(e)},{status:(e as any)?.status||401})}
+ const q=req.nextUrl.searchParams,resource=q.get("resource")||"settings";
+ try{
+  if(resource==="settings")return NextResponse.json({configured:Boolean(process.env.NEXABOT_API_KEY),email:user.email,is_admin:isAdmin(user.email)});
+  if(resource==="account"){const db=adminDb();const [{data:profile,error:pe},{data:ledger,error:le}]=await Promise.all([db.from("profiles").select("id,email,balance,created_at").eq("id",user.id).single(),db.from("token_ledger").select("id,amount,kind,description,created_at").eq("user_id",user.id).order("created_at",{ascending:false}).limit(30)]);if(pe||le)throw new Error("Dompet belum siap. Admin perlu menjalankan schema Supabase.");return NextResponse.json({profile:{...profile,balance:Number(profile.balance)*100},ledger:(ledger||[]).map((x:any)=>({...x,amount:Number(x.amount)*100}))})}
+  if(resource==="notifications"){const {data,error}=await adminDb().from("notifications").select("id,title,message,kind,is_read,created_at").eq("user_id",user.id).order("created_at",{ascending:false}).limit(50);if(error)throw error;return NextResponse.json({notifications:data||[]})}
+  if(resource==="admin-users"){if(!isAdmin(user.email))return NextResponse.json({ok:false,error:"Akses admin ditolak."},{status:403});const {data,error}=await adminDb().from("profiles").select("id,email,balance,created_at").order("created_at",{ascending:false}).limit(500);if(error)throw error;return NextResponse.json({users:(data||[]).map((x:any)=>({...x,balance:Number(x.balance)*100}))})}
+  const h=headers();let url="";
+  if(resource==="credit")url=BASE+"/api/credit";
+  else if(resource==="voices")url=BASE+"/voices";
+  else if(resource==="modes")url=BASE+"/modes";
+  else if(resource==="image-models")url=BASE+"/image";
+  else if(resource==="job")url=BASE+"/jobs/"+encodeURIComponent(q.get("id")||"");
+  else if(resource==="download"||resource==="preview"){const id=q.get("id")||"",r=await fetch(BASE+"/jobs/"+encodeURIComponent(id)+"/download",{headers:h,cache:"no-store",signal:AbortSignal.timeout(60000)});if(!r.ok)return NextResponse.json({ok:false,error:await r.text()||"File hasil belum tersedia."},{status:r.status});const contentType=r.headers.get("content-type")||"video/mp4";const disposition=resource==="preview"?'inline; filename="kazama-result"':r.headers.get("content-disposition")||'attachment; filename="kazama-result"';return new NextResponse(await r.arrayBuffer(),{status:200,headers:{"Content-Type":contentType,"Content-Disposition":disposition,"Cache-Control":"no-store"}})}
+  else return NextResponse.json({ok:false,error:"Resource tidak dikenal."},{status:400});
+  const d=await parse(await fetch(url,{headers:h,cache:"no-store",signal:AbortSignal.timeout(30000)}));
+  if(resource==="credit"){const {data:wallet,error}=await adminDb().from("profiles").select("balance").eq("id",user.id).single();if(error)throw new Error("Dompet belum dibuat. Jalankan schema Supabase.");return NextResponse.json({credit:Number(wallet.balance)*100,balance:Number(wallet.balance)*100,video_credit_cost:d.video_credit_cost??d.credit_cost,video_credit_costs:d.video_credit_costs,voice_credit_cost:d.voice_credit_cost,image_credit_cost:d.image_credit_cost,clone_credit_cost:d.clone_credit_cost})}
+  return NextResponse.json(d);
+ }catch(e){return NextResponse.json({ok:false,error:e instanceof Error?e.message:String(e)},{status:(e as any)?.status||502})}
+}
+export async function POST(req:NextRequest){
+ let user:any;try{user=await currentUser(req)}catch(e){return NextResponse.json({ok:false,error:e instanceof Error?e.message:String(e)},{status:(e as any)?.status||401})}
+ let body:any;try{body=await req.json()}catch{return NextResponse.json({ok:false,error:"Body JSON tidak valid."},{status:400})}
+ const resource=String(body.resource||"");
+ if(resource==="refund"){const reference=String(body.reference||""),jobId=String(body.job_id||"");if(!reference||!jobId)return NextResponse.json({ok:false,error:"Referensi tugas tidak valid."},{status:400});try{const db=adminDb();const {data:linked,error:linkError}=await db.from("generation_jobs").select("provider_job_id").eq("user_id",user.id).eq("token_reference",reference).eq("provider_job_id",jobId).single();if(linkError||!linked)return NextResponse.json({ok:false,error:"Tugas tidak cocok dengan transaksi akun ini."},{status:403});const check=await fetch(BASE+"/jobs/"+encodeURIComponent(jobId),{headers:headers(),cache:"no-store",signal:AbortSignal.timeout(30000)});const data=await parse(check);const job=data.job||data;const status=String(job.status||job.state||"").toLowerCase();if(!["failed","error","cancelled","canceled"].includes(status))return NextResponse.json({ok:false,error:"Refund hanya tersedia jika provider menyatakan tugas gagal."},{status:409});const {data:balance,error}=await db.rpc("refund_token",{p_user_id:user.id,p_reference_id:reference,p_reason:"Generation job "+status});if(error)throw error;return NextResponse.json({ok:true,balance})}catch(e){return NextResponse.json({ok:false,error:e instanceof Error?e.message:String(e)},{status:500})}}
+ if(resource==="admin-send-notification"){
+  if(!isAdmin(user.email))return NextResponse.json({ok:false,error:"Akses admin ditolak."},{status:403});
+  const title=String(body.title||"").trim(),message=String(body.message||"").trim(),email=String(body.email||"").trim().toLowerCase();
+  if(!title||title.length>100||!message||message.length>2000)return NextResponse.json({ok:false,error:"Judul (maksimal 100 karakter) dan pesan (maksimal 2.000 karakter) wajib diisi."},{status:400});
+  try{const db=adminDb();let query=db.from("profiles").select("id");if(email)query=query.eq("email",email);const {data:profiles,error}=await query.limit(500);if(error)throw error;if(!profiles?.length)return NextResponse.json({ok:false,error:email?"Akun pelanggan tidak ditemukan.":"Belum ada pelanggan."},{status:404});const rows=profiles.map((p:any)=>({user_id:p.id,title,message,kind:"admin_message"}));const {error:insertError}=await db.from("notifications").insert(rows);if(insertError)throw insertError;return NextResponse.json({ok:true,sent:rows.length})}catch(e){return NextResponse.json({ok:false,error:e instanceof Error?e.message:String(e)},{status:500})}
+ }
+ if(resource==="notification-read"){
+  const id=String(body.id||"");if(!id)return NextResponse.json({ok:false,error:"Notifikasi tidak valid."},{status:400});try{const {error}=await adminDb().from("notifications").update({is_read:true}).eq("id",id).eq("user_id",user.id);if(error)throw error;return NextResponse.json({ok:true})}catch(e){return NextResponse.json({ok:false,error:e instanceof Error?e.message:String(e)},{status:500})}
+ }
+ if(resource==="admin-credit"){
+  if(!isAdmin(user.email))return NextResponse.json({ok:false,error:"Akses admin ditolak."},{status:403});
+  const email=String(body.email||"").trim().toLowerCase(),amount=Number(body.tokens);
+  if(!email||!Number.isInteger(amount)||amount<100||amount>10000000||amount%100!==0)return NextResponse.json({ok:false,error:"Email dan jumlah token tidak valid."},{status:400});
+  try{const db=adminDb();const {data:profile,error}=await db.from("profiles").select("id").eq("email",email).single();if(error||!profile)return NextResponse.json({ok:false,error:"Akun pelanggan tidak ditemukan."},{status:404});const {data:balance,error:rpcError}=await db.rpc("admin_add_tokens",{p_user_id:profile.id,p_amount:amount/100,p_description:"Top Up Credit · Rp"+(amount*10).toLocaleString("id-ID")});if(rpcError)throw rpcError;const {error:noticeError}=await db.from("notifications").insert({user_id:profile.id,title:"Credit berhasil ditambahkan",message:amount.toLocaleString("id-ID")+" Credit telah masuk ke akunmu. Saldo terbaru: "+Number(balance)*100+" Credit.",kind:"token_credit"});if(noticeError)console.error("Token notification insert failed:",noticeError.message);return NextResponse.json({ok:true,balance})}catch(e){return NextResponse.json({ok:false,error:e instanceof Error?e.message:String(e)},{status:500})}
+ }
+ const paths:Record<string,string>={generate:"/api",image:"/image",voice:"/voice","voice-clone":"/voice/clone"};
+ if(!paths[resource])return NextResponse.json({ok:false,error:"Aksi tidak dikenal."},{status:400});
+ delete body.resource;
+ if(resource==="generate"&&["t2v","sfv","i2v","r2v","extend"].includes(String(body.mode||""))){body.model="omni_flash";body.duration=body.mode==="r2v"?10:15;if(body.mode==="extend")body.resolution=1080}
+ let charged=false,chargeRef="",providerAccepted=false;
+ try{
+  if(!isAdmin(user.email)){chargeRef=crypto.randomUUID();const videoModes=["t2v","sfv","i2v","r2v","extend"];const videoCreditCost=resource==="generate"&&videoModes.includes(String(body.mode||""))?2:2;const {error}=await adminDb().rpc("spend_token",{p_user_id:user.id,p_reference_id:chargeRef,p_cost_units:resource==="image"?1:videoCreditCost});if(error)throw Object.assign(new Error(error.message.includes("insufficient_tokens")?"Token tidak cukup. Silakan isi saldo terlebih dahulu.":error.message),{status:error.message.includes("insufficient_tokens")?402:500});charged=true}
+  const h=headers();const r=await fetch(BASE+paths[resource],{method:"POST",headers:h,body:JSON.stringify(body),cache:"no-store",signal:AbortSignal.timeout(resource==="voice"||resource==="image"||resource==="voice-clone"?280000:60000)});const d=await parse(r);providerAccepted=true;
+  if(d.job_id){const db=adminDb();const jobRow={user_id:user.id,token_reference:chargeRef||("admin-"+crypto.randomUUID()),provider_job_id:String(d.job_id),provider_task_id:String(d.job_id),provider:"nexabot",status:"queued",model:String(body.model||resource),resolution:String(body.resolution??"standard"),duration_seconds:Number(body.duration??0),aspect_ratio:String(body.ratio??body.aspect??"auto"),prompt:String(body.prompt||body.text||body.input||"")};const {error:linkError}=await db.from("generation_jobs").insert(jobRow);if(linkError){console.error("generation_jobs insert failed:",linkError.message);return NextResponse.json({...d,token_charged:charged,token_reference:chargeRef,tracking_warning:"Tugas sudah diterima provider. Riwayat sedang disinkronkan; jangan generate ulang."},{status:r.status});}}
+  return NextResponse.json({...d,token_charged:charged,token_reference:chargeRef},{status:r.status});
+ }catch(e){if(charged&&chargeRef&&!providerAccepted){try{await adminDb().rpc("refund_token",{p_user_id:user.id,p_reference_id:chargeRef,p_reason:"Provider request failed"})}catch{}}const providerMessage=e instanceof Error?e.message:String(e);const lowProviderCredit=/(kredit|credit|saldo|balance).{0,50}(tidak cukup|kurang|habis|insufficient|not enough|exhausted)|(insufficient|not enough|exhausted).{0,50}(kredit|credit|saldo|balance)/i.test(providerMessage);if(lowProviderCredit&&!isAdmin(user.email))return NextResponse.json({ok:false,maintenance:true,error:"KAZAMA AI sedang dalam pemeliharaan. Admin sedang mengisi ulang saldo generator. Mohon tunggu beberapa saat dan coba kembali nanti. Token Anda tidak dipotong."},{status:503});return NextResponse.json({ok:false,error:providerMessage},{status:(e as any)?.status||502})}
+}
 
 
--- Telegram account linking. Codes are stored only as SHA-256 hashes and expire.
-create table if not exists public.telegram_account_links (
+-- Telegram users have independent accounts and wallets, separate from web logins.
+create table if not exists public.telegram_native_accounts (
   telegram_user_id bigint primary key,
   user_id uuid not null unique references auth.users(id) on delete cascade,
   telegram_chat_id bigint not null,
   telegram_username text,
-  linked_at timestamptz not null default now()
-);
-create table if not exists public.telegram_link_codes (
-  code_hash text primary key,
-  user_id uuid not null references auth.users(id) on delete cascade,
-  expires_at timestamptz not null,
   created_at timestamptz not null default now()
 );
-create index if not exists telegram_link_codes_user_idx on public.telegram_link_codes(user_id);
-alter table public.telegram_account_links enable row level security;
-alter table public.telegram_link_codes enable row level security;
-revoke all on public.telegram_account_links from public, anon, authenticated;
-revoke all on public.telegram_link_codes from public, anon, authenticated;
-
-
--- Telegram albums used to collect Motion Control reference video + identity photo.
-create table if not exists public.telegram_media_groups (
-  media_group_id text primary key,
-  telegram_user_id bigint not null,
-  telegram_chat_id bigint not null,
-  prompt text not null default '',
-  video_file_id text,
-  photo_file_id text,
-  created_at timestamptz not null default now()
-);
-alter table public.telegram_media_groups enable row level security;
-revoke all on public.telegram_media_groups from public, anon, authenticated;
+alter table public.telegram_native_accounts enable row level security;
+revoke all on public.telegram_native_accounts from public, anon, authenticated;
