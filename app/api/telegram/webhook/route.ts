@@ -29,11 +29,11 @@ async function telegram(method: string, payload: Record<string, unknown>) {
 async function say(chatId: number, text: string, replyMarkup?: any) {
   return telegram("sendMessage", { chat_id: chatId, text, ...(replyMarkup ? { reply_markup: replyMarkup } : {}) });
 }
-async function ensureTelegramAccount(telegramUserId:number, from:any) {
+async function ensureTelegramAccount(telegramUserId:number, from:any, chatId:number=telegramUserId) {
   const db=dbAdmin();
   const {data:existing}=await db.from("telegram_native_accounts").select("user_id").eq("telegram_user_id",telegramUserId).maybeSingle();
   if(existing?.user_id) return existing.user_id as string;
-  const email=`telegram_${telegramUserId}@accounts.kazamaai.local`;
+  const email=`tg-${telegramUserId}@telegram.kazamaai.my.id`;
   const password=cryptoRandomPassword();
   let user:any=null;
   const created=await db.auth.admin.createUser({email,password,email_confirm:true,user_metadata:{full_name:from?.first_name||"Telegram User",telegram_user_id:String(telegramUserId)}});
@@ -45,8 +45,8 @@ async function ensureTelegramAccount(telegramUserId:number, from:any) {
   } else user=created.data.user;
   if(!user?.id) throw new Error("Akun Telegram tidak dapat dibuat.");
   const {error}=await db.from("telegram_native_accounts").upsert({
-    telegram_user_id:telegramUserId,user_id:user.id,telegram_chat_id:telegramUserId,
-    telegram_username:from?.username||null,linked_at:new Date().toISOString()
+    telegram_user_id:telegramUserId,user_id:user.id,telegram_chat_id:chatId,
+    telegram_username:from?.username||null
   },{onConflict:"telegram_user_id"});
   if(error) throw new Error("Akun Telegram gagal disimpan.");
   return user.id as string;
@@ -112,7 +112,7 @@ async function engineJson(path: string, init: RequestInit = {}) {
 async function linkedUser(telegramUserId: number) {
   const db = dbAdmin();
   const { data, error } = await db.from("telegram_native_accounts").select("user_id").eq("telegram_user_id", telegramUserId).single();
-  if (error || !data) throw new Error("Akun Telegram belum tertaut. Gunakan /link KODE terlebih dahulu.");
+  if (error || !data) throw new Error("Akun Telegram belum tersedia. Ketik /start untuk membuat akun.");
   return data.user_id as string;
 }
 async function studioCall(origin:string, telegramUserId:number, body:any) {
@@ -227,7 +227,7 @@ export async function POST(req: NextRequest) {
       await telegram("answerCallbackQuery", { callback_query_id: callback.id });
       const chatId = callback.message?.chat?.id;
       if (!chatId) return NextResponse.json({ ok: true });
-    await ensureTelegramAccount(Number(message.from?.id),message.from||{});
+    await ensureTelegramAccount(Number(message.from?.id),message.from||{},Number(chatId));
       const action = String(callback.data || "");
       if (action === "account_balance") await sendBalance(chatId, Number(callback.from.id));
       else if (action === "account_history") await sendLatestStatus(chatId,Number(callback.from.id),new URL(req.url).origin);
