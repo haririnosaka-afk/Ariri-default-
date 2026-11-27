@@ -243,6 +243,7 @@ export async function POST(req: NextRequest) {
       await telegram("answerCallbackQuery", { callback_query_id: callback.id });
       const chatId = callback.message?.chat?.id;
       if (!chatId) return NextResponse.json({ ok: true });
+      const action = String(callback.data || "");
       if(action==="check_join") {
         if(await checkRequiredGroup(Number(chatId),Number(callback.from?.id))) {
           await ensureTelegramAccount(Number(callback.from?.id),callback.from||{},Number(chatId));
@@ -252,7 +253,6 @@ export async function POST(req: NextRequest) {
       }
       if(!(await checkRequiredGroup(Number(chatId),Number(callback.from?.id)))) return NextResponse.json({ok:true});
       await ensureTelegramAccount(Number(callback.from?.id),callback.from||{},Number(chatId));
-      const action = String(callback.data || "");
       if (action === "account_balance") await sendBalance(chatId, Number(callback.from.id));
       else if (action === "account_history") await sendLatestStatus(chatId,Number(callback.from.id),new URL(req.url).origin);
       else {
