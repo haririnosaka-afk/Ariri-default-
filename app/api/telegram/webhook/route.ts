@@ -154,6 +154,42 @@ async function telegramFileData(fileId:string) {
   if(bytes.length>2.8*1024*1024)throw new Error("File terlalu besar. Maksimal 2,8 MB per file agar aman diproses.");
   return "data:"+type+";base64,"+bytes.toString("base64");
 }
+async function posbotCall(origin:string,telegramUserId:number,body:any) {
+  const secret=process.env.TELEGRAM_WEBHOOK_SECRET;
+  if(!secret) throw new Error("Layanan bot belum dikonfigurasi.");
+  const response=await fetch(origin+"/api/posbot",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","x-kazama-internal-secret":secret,"x-kazama-telegram-user-id":String(telegramUserId)},
+    body:JSON.stringify(body),cache:"no-store",signal:AbortSignal.timeout(280000)
+  });
+  const data=await response.json().catch(()=>({ok:false,error:"Respons KAZAMA tidak valid."}));
+  if(!response.ok||data.ok===false)throw new Error(String(data.error||"Generator gagal memproses permintaan."));
+  return data;
+}
+async function showVideoModels(chatId:number,origin:string) {
+  const response=await fetch(origin+"/api/posbot?resource=video-models",{
+    headers:{"x-kazama-internal-secret":process.env.TELEGRAM_WEBHOOK_SECRET||"","x-kazama-telegram-user-id":"1"},
+    cache:"no-store",signal:AbortSignal.timeout(30000)
+  });
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok||data.ok===false)throw new Error(data.error||"Katalog model video belum tersedia.");
+  const models=(Array.isArray(data.models)?data.models:[]).filter((m:any)=>{
+    const name=String(m.name||m.title||m.model_key||"");
+    return m.model_key && !/seedance/i.test(name+" "+m.model_key);
+  });
+  if(!models.length)throw new Error("Belum ada model video yang tersedia.");
+  const rows=models.slice(0,40).map((m:any)=>[{
+    text:(String(m.name||m.title||m.model_key).replace(/nexa\\s*bot|pos\\s*bot/ig,"").trim().slice(0,42)+" · "+String(m.customer_tokens??"-")+" Credit").slice(0,60),
+    callback_data:"vmodel:"+String(m.model_key).slice(0,48)
+  }]);
+  await say(chatId,"🎬 PILIH MODEL VIDEO\n\nPilih model yang ingin kamu gunakan. Harga Credit ditampilkan di setiap pilihan.",{inline_keyboard:rows});
+}
+async function generateTelegramVideo(chatId:number,telegramUserId:number,origin:string,model:string,prompt:string) {
+  if(!prompt.trim()) throw new Error("Prompt video tidak boleh kosong.");
+  await say(chatId,"⏳ Video sedang diproses dengan model pilihanmu. Mohon tunggu…");
+  const result=await posbotCall(origin,telegramUserId,{resource:"generate",model,prompt});
+  await say(chatId,"✅ Permintaan video diterima!\n\nModel: "+(result.model||model)+"\nBiaya: "+(result.customer_tokens??"-")+" Credit\nID tugas: "+result.job_id+"\nStatus: "+(result.status||"queued")+"\n\nKirim /status untuk memeriksa hasil.");
+}
 async function runStudio(chatId:number, telegramUserId:number, origin:string, resource:string, payload:any, label:string) {
   await say(chatId,"⏳ "+label+" sedang diproses oleh KAZAMA AI. Mohon tunggu…");
   const result=await studioCall(origin,telegramUserId,{resource,...payload});
@@ -208,7 +244,7 @@ async function handleGeneration(chatId:number, telegramUserId:number, origin:str
     const media=[await telegramFileData(photoId)];
     return runStudio(chatId,telegramUserId,origin,"generate",{mode:"i2v",prompt,media,ratio:1,resolution:1080,duration:15},"Image to Video");
   }
-  if(command==="video") return runStudio(chatId,telegramUserId,origin,"generate",{mode:"t2v",prompt,ratio:1,resolution:1080,duration:15},"Video Generator · Omni Flash");
+  if(command==="video") { await showVideoModels(chatId,origin); return; }
   if(command==="image") return runStudio(chatId,telegramUserId,origin,"image",{model:"nano_banana_2",prompt,aspect:"auto",resolution:"1K"},"Image Generator");
   if(command==="music") return runStudio(chatId,telegramUserId,origin,"generate",{mode:"music",prompt},"Music Generator");
   if(command==="tts") return runStudio(chatId,telegramUserId,origin,"generate",{mode:"tts",prompt,voice:"Achernar"},"Text to Speech");
@@ -244,7 +280,7 @@ export async function POST(req: NextRequest) {
       const chatId = callback.message?.chat?.id;
       if (!chatId) return NextResponse.json({ ok: true });
       const action = String(callback.data || "");
-      if(action==="check_join") {
+      if(action.startsWith("vmodel:")) {\n        const model=action.slice(7);\n        await dbAdmin().from("telegram_bot_sessions").upsert({telegram_user_id:Number(callback.from.id),telegram_chat_id:Number(chatId),pending_action:"video_prompt:"+model,created_at:new Date().toISOString()},{onConflict:"telegram_user_id"});\n        await say(Number(chatId),"✅ Model dipilih: "+model+"\\n\\nSekarang kirim prompt video yang ingin kamu buat.");\n        return NextResponse.json({ok:true});\n      }\n      if(action==="check_join") {
         if(await checkRequiredGroup(Number(chatId),Number(callback.from?.id))) {
           await ensureTelegramAccount(Number(callback.from?.id),callback.from||{},Number(chatId));
           await say(Number(chatId),"✅ Keanggotaan grup terverifikasi. Akun Telegram kamu siap digunakan. Ketik /menu untuk membuka layanan.");
