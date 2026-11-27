@@ -369,7 +369,13 @@ export async function POST(req: NextRequest) {
       const {data:session}=await db.from("telegram_bot_sessions").select("pending_action").eq("telegram_user_id",Number(message.from?.id)).maybeSingle();
       if(session?.pending_action){
         await db.from("telegram_bot_sessions").delete().eq("telegram_user_id",Number(message.from?.id));
-        await handleGeneration(chatId,Number(message.from?.id),new URL(req.url).origin,String(session.pending_action),text,message);
+        const pendingAction=String(session.pending_action);
+        if(pendingAction.startsWith("video_prompt:")){
+          const selectedModel=pendingAction.slice("video_prompt:".length);
+          await generateTelegramVideo(chatId,Number(message.from?.id),new URL(req.url).origin,selectedModel,text);
+        } else {
+          await handleGeneration(chatId,Number(message.from?.id),new URL(req.url).origin,pendingAction,text,message);
+        }
         return NextResponse.json({ok:true});
       }
     }
