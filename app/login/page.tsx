@@ -25,18 +25,18 @@ export default function LoginPage() {
       if(verifyMode){
         const result=await supabase.auth.verifyOtp({email:email.trim(),token:code.trim(),type:"signup"});
         if(result.error) throw result.error;
-        location.href="/";
+        location.href="/studio";
         return;
       }
       if(signup){
         const result=await supabase.auth.signUp({email:email.trim(),password,options:{emailRedirectTo:location.origin+"/auth/callback"}});
         if(result.error) throw result.error;
-        if(result.data.session) location.href="/";
+        if(result.data.session) location.href="/studio";
         else {setVerifyMode(true);setMessage("Kode verifikasi telah dikirim ke email. Masukkan 6 digit kode untuk mengaktifkan akun.");}
       } else {
         const result=await supabase.auth.signInWithPassword({email:email.trim(),password});
         if(result.error) throw result.error;
-        location.href="/";
+        location.href="/studio";
       }
     } catch(e) { setError(e instanceof Error?e.message:"Tidak dapat memproses permintaan."); }
     finally { setBusy(false); }
@@ -44,7 +44,7 @@ export default function LoginPage() {
   async function googleLogin(){
     setBusy(true);setError("");setMessage("");
     try{
-      const {error}=await client().auth.signInWithOAuth({provider:"google",options:{redirectTo:location.origin+"/auth/callback"}});
+      const {error}=await client().auth.signInWithOAuth({provider:"google",options:{redirectTo:location.origin+"/auth/callback?next=%2Fstudio"}});
       if(error)throw error;
     }catch(e){setError(e instanceof Error?e.message:"Login Google gagal.");setBusy(false);}
   }
