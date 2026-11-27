@@ -272,7 +272,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   let user: any;
-  try { user = await userOrThrow(); }
+  try { user = await userOrThrow(request); }
   catch (error: any) { return NextResponse.json({ ok: false, error: error.message }, { status: error.status || 401 }); }
   let body: any;
   try { body = await request.json(); }
