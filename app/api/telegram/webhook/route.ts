@@ -226,8 +226,19 @@ export async function POST(req: NextRequest) {
       if (action === "account_balance") await sendBalance(chatId, Number(callback.from.id));
       else if (action === "account_history") await sendLatestStatus(chatId,Number(callback.from.id),new URL(req.url).origin);
       else {
-        const prompts:Record<string,string>={tool_video:"Kirim prompt video dengan format /video PROMPT",tool_image:"Kirim prompt gambar dengan format /image PROMPT",tool_music:"Kirim ide musik dengan format /music PROMPT",tool_voice:"Kirim teks narasi dengan format /voice TEKS",tool_motion:"Kirim satu video sumber dan satu foto identitas dengan caption /motion PROMPT. Bot akan mengirim keduanya sebagai referensi Motion Control.",tool_tts:"Kirim teks dengan format /tts TEKS",tool_clone:"Kirim file audio 15–60 detik dengan caption /clone Nama Voice"};
-        await say(chatId,"🎛️ "+(prompts[action]||"Pilih layanan dari /menu.")+"\n\nSaldo Credit Telegram akan digunakan untuk permintaan ini. Akun website tidak terhubung.");
+        const promptActions:Record<string,string>={tool_video:"video",tool_image:"image",tool_music:"music",tool_voice:"voice",tool_tts:"tts"};
+        const promptAction=promptActions[action];
+        if(promptAction){
+          const {error:sessionError}=await dbAdmin().from("telegram_bot_sessions").upsert({telegram_user_id:Number(callback.from.id),telegram_chat_id:Number(chatId),pending_action:promptAction,created_at:new Date().toISOString()},{onConflict:"telegram_user_id"});
+          if(sessionError)throw new Error("Sesi generator tidak dapat dimulai. Coba pilih menu lagi.");
+          const titles:Record<string,string>={video:"🎬 VIDEO GENERATOR",image:"🖼️ IMAGE GENERATOR",music:"🎵 MUSIC GENERATOR",voice:"🎙️ VOICE STUDIO",tts:"🗣️ TEXT TO SPEECH"};
+          const hints:Record<string,string>={video:"Kirim prompt video yang ingin kamu buat. Tidak perlu mengetik perintah /video.",image:"Kirim deskripsi gambar yang ingin kamu buat.",music:"Kirim ide atau deskripsi musik yang ingin kamu buat.",voice:"Kirim teks yang ingin diubah menjadi suara.",tts:"Kirim teks yang ingin dibacakan."};
+          await say(chatId,titles[promptAction]+"\n\n"+hints[promptAction]+"\n\nKetik /menu untuk membatalkan dan kembali ke menu.");
+        } else if(action==="tool_motion"){
+          await say(chatId,"🎭 MOTION CONTROL\n\nKirim satu video sumber dan satu foto identitas sebagai satu album Telegram. Beri caption album: /motion diikuti prompt gerakan yang diinginkan.");
+        } else if(action==="tool_clone"){
+          await say(chatId,"🎙️ VOICE CLONING\n\nKirim file audio 15–60 detik dengan caption /clone diikuti nama voice.");
+        } else await say(chatId,"Pilih layanan dari /menu.");
       }
       return NextResponse.json({ ok: true });
     }
@@ -262,6 +273,15 @@ export async function POST(req: NextRequest) {
         await say(Number(chatId),"📎 Media diterima. Kirim video sumber dan foto identitas sebagai satu album Telegram (pilih keduanya sekaligus), lalu beri caption /motion di album tersebut.");
       }
       return NextResponse.json({ok:true});
+    }
+    if(text && !text.startsWith("/")){
+      const db=dbAdmin();
+      const {data:session}=await db.from("telegram_bot_sessions").select("pending_action").eq("telegram_user_id",Number(message.from?.id)).maybeSingle();
+      if(session?.pending_action){
+        await db.from("telegram_bot_sessions").delete().eq("telegram_user_id",Number(message.from?.id));
+        await handleGeneration(chatId,Number(message.from?.id),new URL(req.url).origin,String(session.pending_action),text,message);
+        return NextResponse.json({ok:true});
+      }
     }
     if (/^\/(start|menu)(?:\s|$)/i.test(text)) await sendMenu(chatId, message.from?.first_name || "");
     else if (/^\/help(?:\s|$)/i.test(text)) {
