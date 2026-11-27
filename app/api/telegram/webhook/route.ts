@@ -227,7 +227,7 @@ export async function POST(req: NextRequest) {
       await telegram("answerCallbackQuery", { callback_query_id: callback.id });
       const chatId = callback.message?.chat?.id;
       if (!chatId) return NextResponse.json({ ok: true });
-    await ensureTelegramAccount(Number(message.from?.id),message.from||{},Number(chatId));
+      await ensureTelegramAccount(Number(callback.from?.id),callback.from||{},Number(chatId));
       const action = String(callback.data || "");
       if (action === "account_balance") await sendBalance(chatId, Number(callback.from.id));
       else if (action === "account_history") await sendLatestStatus(chatId,Number(callback.from.id),new URL(req.url).origin);
@@ -243,6 +243,7 @@ export async function POST(req: NextRequest) {
     if (chatId) errorChatId=Number(chatId);
     const text = String(message?.text || message?.caption || "").trim();
     if (!chatId) return NextResponse.json({ ok: true });
+    await ensureTelegramAccount(Number(message.from?.id),message.from||{},Number(chatId));
     if (message?.media_group_id && (message.video || message.photo?.length)) {
       const db=dbAdmin();
       const groupId=String(message.media_group_id);
