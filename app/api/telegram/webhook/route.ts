@@ -280,7 +280,7 @@ export async function POST(req: NextRequest) {
       const chatId = callback.message?.chat?.id;
       if (!chatId) return NextResponse.json({ ok: true });
       const action = String(callback.data || "");
-      if(action.startsWith("vmodel:")) {\n        const model=action.slice(7);\n        await dbAdmin().from("telegram_bot_sessions").upsert({telegram_user_id:Number(callback.from.id),telegram_chat_id:Number(chatId),pending_action:"video_prompt:"+model,created_at:new Date().toISOString()},{onConflict:"telegram_user_id"});\n        await say(Number(chatId),"✅ Model dipilih: "+model+"\\n\\nSekarang kirim prompt video yang ingin kamu buat.");\n        return NextResponse.json({ok:true});\n      }\n      if(action==="check_join") {
+      if(action==="check_join") {
         if(await checkRequiredGroup(Number(chatId),Number(callback.from?.id))) {
           await ensureTelegramAccount(Number(callback.from?.id),callback.from||{},Number(chatId));
           await say(Number(chatId),"✅ Keanggotaan grup terverifikasi. Akun Telegram kamu siap digunakan. Ketik /menu untuk membuka layanan.");
@@ -289,6 +289,12 @@ export async function POST(req: NextRequest) {
       }
       if(!(await checkRequiredGroup(Number(chatId),Number(callback.from?.id)))) return NextResponse.json({ok:true});
       await ensureTelegramAccount(Number(callback.from?.id),callback.from||{},Number(chatId));
+      if(action.startsWith("vmodel:")) {
+        const model=action.slice(7);
+        await dbAdmin().from("telegram_bot_sessions").upsert({telegram_user_id:Number(callback.from.id),telegram_chat_id:Number(chatId),pending_action:"video_prompt:"+model,created_at:new Date().toISOString()},{onConflict:"telegram_user_id"});
+        await say(Number(chatId),"✅ Model dipilih: "+model+"\\n\\nSekarang kirim prompt video yang ingin kamu buat.");
+        return NextResponse.json({ok:true});
+      }
       if (action === "account_balance") await sendBalance(chatId, Number(callback.from.id));
       else if (action === "account_history") await sendLatestStatus(chatId,Number(callback.from.id),new URL(req.url).origin);
       else {
