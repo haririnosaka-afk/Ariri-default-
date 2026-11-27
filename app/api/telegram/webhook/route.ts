@@ -109,12 +109,6 @@ async function engineJson(path: string, init: RequestInit = {}) {
   if (!response.ok || data?.ok === false) throw new Error(String(data?.error || data?.message || "Generator gagal menerima permintaan."));
   return data;
 }
-async function linkedUser(telegramUserId: number) {
-  const db = dbAdmin();
-  const { data, error } = await db.from("telegram_native_accounts").select("user_id").eq("telegram_user_id", telegramUserId).single();
-  if (error || !data) throw new Error("Akun Telegram belum tersedia. Ketik /start untuk membuat akun.");
-  return data.user_id as string;
-}
 async function studioCall(origin:string, telegramUserId:number, body:any) {
   const secret=process.env.TELEGRAM_WEBHOOK_SECRET;
   if(!secret) throw new Error("Layanan bot belum dikonfigurasi.");
@@ -145,7 +139,7 @@ async function runStudio(chatId:number, telegramUserId:number, origin:string, re
     await say(chatId,"✅ Permintaan diterima!\n\nLayanan: "+label+"\nID tugas: "+result.job_id+"\nStatus: "+(result.status||"queued")+"\n\nGunakan /status untuk memeriksa hasil.");
   } else {
     const url=String(result.url||result.audio_url||result.image_url||result.data?.url||"");
-    if(!url)throw new Error("KAZAMA belum mengembalikan file hasil. Cek riwayat di website sebelum mengirim ulang.");
+    if(!url)throw new Error("KAZAMA belum mengembalikan file hasil. Periksa /status sebelum mengirim ulang agar tidak membuat tugas ganda.");
     if(resource==="image")await telegram("sendPhoto",{chat_id:chatId,photo:url,caption:"🖼️ Hasil Image Generator · KAZAMA AI"});
     else if(resource==="voice")await telegram("sendAudio",{chat_id:chatId,audio:url,caption:"🎙️ Hasil Voice Generator · KAZAMA AI"});
     else await telegram("sendAudio",{chat_id:chatId,audio:url,caption:"🎵 Hasil audio · KAZAMA AI"});
@@ -198,7 +192,7 @@ async function handleGeneration(chatId:number, telegramUserId:number, origin:str
   if(command==="tts") return runStudio(chatId,telegramUserId,origin,"generate",{mode:"tts",prompt,voice:"Achernar"},"Text to Speech");
   if(command==="voice") {
     const {data:voices}=await dbAdmin().from("telegram_native_accounts").select("user_id").eq("telegram_user_id",telegramUserId).single();
-    if(!voices)throw new Error("Tautkan akun KAZAMA terlebih dahulu.");
+    if(!voices)throw new Error("Ketik /start untuk membuat akun Telegram.");
     const catalog=await fetch(origin+"/api/studio?resource=voices",{headers:{"x-kazama-internal-secret":process.env.TELEGRAM_WEBHOOK_SECRET!,"x-kazama-telegram-user-id":String(telegramUserId)},cache:"no-store"});
     const voiceData=await catalog.json().catch(()=>({}));
     const first=(voiceData.voices||voiceData.data?.voices||[])[0];
