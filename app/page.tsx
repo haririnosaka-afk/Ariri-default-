@@ -1,3 +1,4 @@
+"use client";
 import Link from "next/link";
 import {ArrowRight,Sparkles,Video,Image as ImageIcon,Music2,Mic2,ShieldCheck,Clapperboard,CreditCard} from "lucide-react";
 const features=[{icon:Video,title:"AI Video Generator",desc:"Ubah prompt dan foto referensi menjadi video."},{icon:ImageIcon,title:"AI Image Generator",desc:"Buat visual baru dari ide dan arahanmu."},{icon:Clapperboard,title:"Motion Control & Recreate",desc:"Eksplorasi gerakan dan referensi video."},{icon:Music2,title:"Music Generator",desc:"Buat musik untuk menemani konten kreatif."},{icon:Mic2,title:"Voice Studio",desc:"Buat narasi dan kreasi suara dengan AI."},{icon:Sparkles,title:"Creative Workspace",desc:"Pantau proses dan kelola hasil kreasi."}];
