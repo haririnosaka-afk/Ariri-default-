@@ -89,6 +89,94 @@ async function sendBalance(chatId: number, telegramUserId: number) {
   await say(chatId, `💳 KAZAMA AI Wallet\nAkun: ${profile.email || "KAZAMA user"}\nSaldo: ${Number(profile.balance) * 100} Credit`);
 }
 
+
+const ENGINE_BASE = (process.env.PRIVATE_ENGINE_URL || "").replace(/\\/+$/, "") + "/api/v1";
+function engineHeaders() {
+  const key = process.env.NEXABOT_API_KEY;
+  if (!key) throw new Error("Generator sedang tidak tersedia. Hubungi admin KAZAMA.");
+  return { "x-api-key": key, "Content-Type": "application/json", Accept: "application/json" };
+}
+async function engineJson(path: string, init: RequestInit = {}) {
+  const response = await fetch(ENGINE_BASE + path, { ...init, headers: engineHeaders(), cache: "no-store", signal: AbortSignal.timeout(60000) });
+  const raw = await response.text();
+  let data: any;
+  try { data = raw ? JSON.parse(raw) : {}; } catch { throw new Error("Respons generator tidak valid."); }
+  if (!response.ok || data?.ok === false) throw new Error(String(data?.error || data?.message || "Generator gagal menerima permintaan."));
+  return data;
+}
+async function linkedUser(telegramUserId: number) {
+  const db = dbAdmin();
+  const { data, error } = await db.from("telegram_account_links").select("user_id").eq("telegram_user_id", telegramUserId).single();
+  if (error || !data) throw new Error("Akun Telegram belum tertaut. Gunakan /link KODE terlebih dahulu.");
+  return data.user_id as string;
+}
+async function startTextGeneration(chatId: number, telegramUserId: number, kind: "video" | "image", prompt: string) {
+  if (!prompt.trim()) { await say(chatId, kind === "video" ? "Format: /video tulis prompt video kamu" : "Format: /image tulis prompt gambar kamu"); return; }
+  const userId = await linkedUser(telegramUserId);
+  const db = dbAdmin();
+  const { data: profile, error: profileError } = await db.from("profiles").select("email,balance").eq("id", userId).single();
+  if (profileError || !profile) throw new Error("Akun KAZAMA tidak ditemukan.");
+  const admin = !!profile.email && !!process.env.KAZAMA_ADMIN_EMAIL && profile.email.toLowerCase() === process.env.KAZAMA_ADMIN_EMAIL.toLowerCase();
+  const reference = crypto.randomUUID();
+  const costUnits = kind === "image" ? 1 : 2;
+  if (!admin) {
+    const { error } = await db.rpc("spend_token", { p_user_id: userId, p_reference_id: reference, p_cost_units: costUnits });
+    if (error) {
+      if (error.message.includes("insufficient_tokens")) throw new Error("Credit tidak cukup. Silakan isi saldo KAZAMA terlebih dahulu.");
+      throw error;
+    }
+  }
+  let accepted = false;
+  try {
+    if (kind === "video") {
+      const result = await engineJson("/api", { method: "POST", body: JSON.stringify({ mode: "t2v", model: "omni_flash", prompt, duration: 15, ratio: 1, resolution: 1080 }) });
+      const jobId = String(result.job_id || "");
+      if (!jobId) throw new Error("Generator tidak mengembalikan ID tugas.");
+      accepted = true;
+      const { error } = await db.from("generation_jobs").insert({
+        user_id: userId, token_reference: admin ? "admin-" + reference : reference,
+        provider_job_id: jobId, provider_task_id: jobId, provider: "nexabot",
+        model: "omni_flash", status: result.status || "queued", duration_seconds: 15,
+        aspect_ratio: "9:16", prompt
+      });
+      if (error) console.error("Telegram job history insert:", error.message);
+      await say(chatId, "🎬 Video berhasil masuk antrean KAZAMA AI.\nID tugas: " + jobId + "\nBiaya: " + (admin ? "Gratis (admin)" : "1 Credit") + "\nKirim /status untuk memeriksa proses.");
+    } else {
+      const catalog = await engineJson("/image");
+      const models = Array.isArray(catalog.models) ? catalog.models : [];
+      const model = String(models[0]?.id || models[0]?.model || models[0]?.key || "gpt_image_1");
+      const result = await engineJson("/image", { method: "POST", body: JSON.stringify({ model, prompt, aspect: "1:1", resolution: "standard" }) });
+      accepted = true;
+      const url = String(result.url || result.image_url || result.data?.url || "");
+      if (!url) throw new Error("Generator tidak mengembalikan URL gambar.");
+      await telegram("sendPhoto", { chat_id: chatId, photo: url, caption: "🖼️ Hasil Image Generator KAZAMA AI\nBiaya: " + (admin ? "Gratis (admin)" : "0,5 Credit") });
+    }
+  } catch (error) {
+    if (!accepted && !admin) {
+      try { await db.rpc("refund_token", { p_user_id: userId, p_reference_id: reference, p_reason: "Telegram provider request failed" }); } catch {}
+    }
+    throw error;
+  }
+}
+async function sendLatestStatus(chatId: number, telegramUserId: number) {
+  const userId = await linkedUser(telegramUserId);
+  const db = dbAdmin();
+  const { data: job, error } = await db.from("generation_jobs").select("provider_job_id,model,prompt,status,created_at")
+    .eq("user_id", userId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (error || !job) { await say(chatId, "Belum ada tugas generator di riwayat akun ini."); return; }
+  const id = String(job.provider_job_id || "");
+  const result = await engineJson("/jobs/" + encodeURIComponent(id));
+  const task = result.job || result.data || result;
+  const status = String(task.status || task.state || job.status || "processing");
+  const url = String(task.url || task.video_url || task.output_url || task.result_url || "");
+  await db.from("generation_jobs").update({ status, ...(url ? { result_url: url } : {}) }).eq("user_id", userId).eq("provider_job_id", id);
+  if (url && /^(completed|done|success|succeeded)$/i.test(status)) {
+    await telegram("sendVideo", { chat_id: chatId, video: url, caption: "✅ Hasil video KAZAMA AI selesai." });
+  } else {
+    await say(chatId, "📽️ Status tugas terakhir: " + status + "\nID: " + id + "\nKirim /status lagi beberapa saat kemudian.");
+  }
+}
+
 export async function POST(req: NextRequest) {
   const expected = process.env.TELEGRAM_WEBHOOK_SECRET;
   const supplied = req.headers.get("x-telegram-bot-api-secret-token");
