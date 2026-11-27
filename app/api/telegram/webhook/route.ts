@@ -225,7 +225,8 @@ export async function POST(req: NextRequest) {
       const chatId = callback.message?.chat?.id;
       if (!chatId) return NextResponse.json({ ok: true });
       const action = String(callback.data || "");
-      if (action === "account_balance") await sendBalance(chatId, Number(callback.from.id));\n      else if (action === "account_history") await sendLatestStatus(chatId,Number(callback.from.id),new URL(req.url).origin);
+      if (action === "account_balance") await sendBalance(chatId, Number(callback.from.id));
+      else if (action === "account_history") await sendLatestStatus(chatId,Number(callback.from.id),new URL(req.url).origin);
       else if (action === "account_link") await say(chatId, "🔗 TAUTKAN AKUN\n1. Login ke https://kazamaai.my.id di browser.\n2. Buka https://kazamaai.my.id/api/telegram/link-code.\n3. Salin kode yang muncul.\n4. Kirim ke bot dengan format /link KODE.\n\nKode hanya berlaku 10 menit dan hanya bisa dipakai sekali.");
       else {
         const prompts:Record<string,string>={tool_video:"Kirim prompt video dengan format /video PROMPT",tool_image:"Kirim prompt gambar dengan format /image PROMPT",tool_music:"Kirim ide musik dengan format /music PROMPT",tool_voice:"Kirim teks narasi dengan format /voice TEKS",tool_motion:"Kirim satu video sumber dan satu foto identitas dengan caption /motion PROMPT. Bot akan mengirim keduanya sebagai referensi Motion Control.",tool_tts:"Kirim teks dengan format /tts TEKS",tool_clone:"Kirim file audio 15–60 detik dengan caption /clone Nama Voice"};
