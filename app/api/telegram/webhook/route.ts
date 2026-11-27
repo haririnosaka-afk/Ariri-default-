@@ -157,6 +157,19 @@ async function sendLatestStatus(chatId:number, telegramUserId:number, origin:str
 }
 async function handleGeneration(chatId:number, telegramUserId:number, origin:string, command:string, prompt:string, message:any) {
   if(!prompt.trim() && !["clone"].includes(command)) { await say(chatId,"Tulis prompt setelah perintah.\nContoh: /"+command+" cinematic shot of a city at sunset"); return; }
+  if(command==="motion") {
+    const videoId=message.video?.file_id||message.document?.file_id;
+    const photoId=message.photo?.[message.photo.length-1]?.file_id;
+    if(!videoId||!photoId)throw new Error("Lampirkan satu video sumber dan satu foto identitas, lalu beri caption /motion PROMPT.");
+    const media=[await telegramFileData(videoId),await telegramFileData(photoId)];
+    return runStudio(chatId,telegramUserId,origin,"generate",{mode:"r2v",prompt:prompt||"Recreate the source motion while preserving the identity from the reference photo.",media,ratio:1,resolution:1080,duration:10},"Motion Control");
+  }
+  if(command==="i2v") {
+    const photoId=message.photo?.[message.photo.length-1]?.file_id;
+    if(!photoId)throw new Error("Lampirkan satu foto dengan caption /i2v PROMPT.");
+    const media=[await telegramFileData(photoId)];
+    return runStudio(chatId,telegramUserId,origin,"generate",{mode:"i2v",prompt,media,ratio:1,resolution:1080,duration:15},"Image to Video");
+  }
   if(command==="video") return runStudio(chatId,telegramUserId,origin,"generate",{mode:"t2v",prompt,ratio:1,resolution:1080,duration:15},"Video Generator · Omni Flash");
   if(command==="image") return runStudio(chatId,telegramUserId,origin,"image",{model:"nano_banana_2",prompt,aspect:"auto",resolution:"1K"},"Image Generator");
   if(command==="music") return runStudio(chatId,telegramUserId,origin,"generate",{mode:"music",prompt},"Music Generator");
@@ -192,10 +205,10 @@ export async function POST(req: NextRequest) {
       const chatId = callback.message?.chat?.id;
       if (!chatId) return NextResponse.json({ ok: true });
       const action = String(callback.data || "");
-      if (action === "account_balance") await sendBalance(chatId, Number(callback.from.id));
+      if (action === "account_balance") await sendBalance(chatId, Number(callback.from.id));\n      else if (action === "account_history") await sendLatestStatus(chatId,Number(callback.from.id),new URL(req.url).origin);
       else if (action === "account_link") await say(chatId, "🔗 TAUTKAN AKUN\n1. Login ke https://kazamaai.my.id di browser.\n2. Buka https://kazamaai.my.id/api/telegram/link-code.\n3. Salin kode yang muncul.\n4. Kirim ke bot dengan format /link KODE.\n\nKode hanya berlaku 10 menit dan hanya bisa dipakai sekali.");
       else {
-        const prompts:Record<string,string>={tool_video:"Kirim prompt video dengan format /video PROMPT",tool_image:"Kirim prompt gambar dengan format /image PROMPT",tool_music:"Kirim ide musik dengan format /music PROMPT",tool_voice:"Kirim teks narasi dengan format /voice TEKS",tool_motion:"Untuk saat ini gunakan /video untuk membuat video. Mode Motion Control dengan video dan foto referensi akan diaktifkan setelah alur upload media selesai diuji.",tool_tts:"Kirim teks dengan format /tts TEKS",tool_clone:"Kirim file audio 15–60 detik dengan caption /clone Nama Voice"};
+        const prompts:Record<string,string>={tool_video:"Kirim prompt video dengan format /video PROMPT",tool_image:"Kirim prompt gambar dengan format /image PROMPT",tool_music:"Kirim ide musik dengan format /music PROMPT",tool_voice:"Kirim teks narasi dengan format /voice TEKS",tool_motion:"Kirim satu video sumber dan satu foto identitas dengan caption /motion PROMPT. Bot akan mengirim keduanya sebagai referensi Motion Control.",tool_tts:"Kirim teks dengan format /tts TEKS",tool_clone:"Kirim file audio 15–60 detik dengan caption /clone Nama Voice"};
         await say(chatId,"🎛️ "+(prompts[action]||"Pilih layanan dari /menu.")+"\n\nPastikan akun sudah tertaut dan saldo Credit mencukupi.");
       }
       return NextResponse.json({ ok: true });
@@ -203,7 +216,7 @@ export async function POST(req: NextRequest) {
 
     const message = update.message;
     const chatId = message?.chat?.id;
-    const text = String(message?.text || "").trim();
+    const text = String(message?.text || message?.caption || "").trim();
     if (!chatId) return NextResponse.json({ ok: true });
     if (/^\/(start|menu)(?:\s|$)/i.test(text)) await sendMenu(chatId, message.from?.first_name || "");
     else if (/^\/help(?:\s|$)/i.test(text)) {
@@ -212,13 +225,13 @@ export async function POST(req: NextRequest) {
       await linkAccount(chatId, message.from || {}, text.replace(/^\/link\s*/i, ""));
     } else if (text === "/saldo" || text.startsWith("/saldo ")) {
       await sendBalance(chatId, Number(message.from?.id));
-    } else if (/^\/(video|image|music|tts|voice|clone)(?:@KazamaAIBot)?(?:\s|$)/i.test(text)) {
-      const match=text.match(/^\/(video|image|music|tts|voice|clone)(?:@KazamaAIBot)?(?:\s+([\s\S]*))?$/i)!;
+    } else if (/^\/(video|image|music|tts|voice|clone|motion|i2v)(?:@KazamaAIBot)?(?:\s|$)/i.test(text)) {
+      const match=text.match(/^\/(video|image|music|tts|voice|clone|motion|i2v)(?:@KazamaAIBot)?(?:\s+([\s\S]*))?$/i)!;
       await handleGeneration(chatId,Number(message.from?.id),new URL(req.url).origin,match[1].toLowerCase(),match[2]||message.caption||"",message);
     } else if (text === "/status" || text.startsWith("/status ")) {
       await sendLatestStatus(chatId, Number(message.from?.id),new URL(req.url).origin);
     } else {
-      await say(chatId, "Gunakan /menu, /saldo, /video PROMPT, /image PROMPT, atau /status.");
+      await say(chatId, "Gunakan /menu, /saldo, /video PROMPT, /i2v PROMPT, /motion PROMPT, /image PROMPT, /music PROMPT, /tts TEKS, /voice TEKS, /clone, atau /status.");
     }
     return NextResponse.json({ ok: true });
   } catch (error) {
