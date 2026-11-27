@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +31,7 @@ async function say(chatId: number, text: string, replyMarkup?: any) {
 }
 async function ensureTelegramAccount(telegramUserId:number, from:any) {
   const db=dbAdmin();
-  const {data:existing}=await db.from("telegram_account_links").select("user_id").eq("telegram_user_id",telegramUserId).maybeSingle();
+  const {data:existing}=await db.from("telegram_native_accounts").select("user_id").eq("telegram_user_id",telegramUserId).maybeSingle();
   if(existing?.user_id) return existing.user_id as string;
   const email=`telegram_${telegramUserId}@accounts.kazamaai.local`;
   const password=cryptoRandomPassword();
@@ -44,14 +44,14 @@ async function ensureTelegramAccount(telegramUserId:number, from:any) {
     if(!user) throw new Error("Akun Telegram gagal dibuat: "+created.error.message);
   } else user=created.data.user;
   if(!user?.id) throw new Error("Akun Telegram tidak dapat dibuat.");
-  const {error}=await db.from("telegram_account_links").upsert({
+  const {error}=await db.from("telegram_native_accounts").upsert({
     telegram_user_id:telegramUserId,user_id:user.id,telegram_chat_id:telegramUserId,
     telegram_username:from?.username||null,linked_at:new Date().toISOString()
   },{onConflict:"telegram_user_id"});
   if(error) throw new Error("Akun Telegram gagal disimpan.");
   return user.id as string;
 }
-function cryptoRandomPassword(){return Array.from(crypto.getRandomValues(new Uint8Array(32))).map(x=>x.toString(16).padStart(2,"0")).join("")+"Aa1!";}
+function cryptoRandomPassword(){return randomBytes(32).toString("hex")+"Aa1!";}
 async function sendMenu(chatId: number, firstName = "") {
   const name = firstName ? ` ${firstName}` : "";
   await telegram("setMyCommands",{commands:[
@@ -85,7 +85,7 @@ async function sendMenu(chatId: number, firstName = "") {
 }
 async function sendBalance(chatId: number, telegramUserId: number) {
   const db = dbAdmin();
-  const { data: account, error: accountError } = await db.from("telegram_account_links")
+  const { data: account, error: accountError } = await db.from("telegram_native_accounts")
     .select("user_id").eq("telegram_user_id", telegramUserId).single();
   if (accountError || !account) throw new Error("Akun Telegram belum dibuat. Ketik /start terlebih dahulu.");
   const { data: profile, error } = await db.from("profiles")
@@ -111,7 +111,7 @@ async function engineJson(path: string, init: RequestInit = {}) {
 }
 async function linkedUser(telegramUserId: number) {
   const db = dbAdmin();
-  const { data, error } = await db.from("telegram_account_links").select("user_id").eq("telegram_user_id", telegramUserId).single();
+  const { data, error } = await db.from("telegram_native_accounts").select("user_id").eq("telegram_user_id", telegramUserId).single();
   if (error || !data) throw new Error("Akun Telegram belum tertaut. Gunakan /link KODE terlebih dahulu.");
   return data.user_id as string;
 }
@@ -153,7 +153,7 @@ async function runStudio(chatId:number, telegramUserId:number, origin:string, re
 }
 async function sendLatestStatus(chatId:number, telegramUserId:number, origin:string) {
   const db=dbAdmin();
-  const {data:link,error:linkError}=await db.from("telegram_account_links").select("user_id").eq("telegram_user_id",telegramUserId).single();
+  const {data:link,error:linkError}=await db.from("telegram_native_accounts").select("user_id").eq("telegram_user_id",telegramUserId).single();
   if(linkError||!link)throw new Error("Ketik /start untuk membuat akun Telegram.");
   const {data:jobs,error}=await db.from("generation_jobs").select("provider_job_id,model,prompt,status,created_at").eq("user_id",link.user_id).order("created_at",{ascending:false}).limit(5);
   if(error||!jobs?.length){await say(chatId,"Belum ada tugas generator di riwayat akunmu.");return;}
@@ -197,7 +197,7 @@ async function handleGeneration(chatId:number, telegramUserId:number, origin:str
   if(command==="music") return runStudio(chatId,telegramUserId,origin,"generate",{mode:"music",prompt},"Music Generator");
   if(command==="tts") return runStudio(chatId,telegramUserId,origin,"generate",{mode:"tts",prompt,voice:"Achernar"},"Text to Speech");
   if(command==="voice") {
-    const {data:voices}=await dbAdmin().from("telegram_account_links").select("user_id").eq("telegram_user_id",telegramUserId).single();
+    const {data:voices}=await dbAdmin().from("telegram_native_accounts").select("user_id").eq("telegram_user_id",telegramUserId).single();
     if(!voices)throw new Error("Tautkan akun KAZAMA terlebih dahulu.");
     const catalog=await fetch(origin+"/api/studio?resource=voices",{headers:{"x-kazama-internal-secret":process.env.TELEGRAM_WEBHOOK_SECRET!,"x-kazama-telegram-user-id":String(telegramUserId)},cache:"no-store"});
     const voiceData=await catalog.json().catch(()=>({}));
