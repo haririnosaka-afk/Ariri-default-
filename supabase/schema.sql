@@ -119,3 +119,24 @@ revoke all on function public.admin_add_tokens(uuid,integer,text) from public, a
 grant execute on function public.spend_token(uuid,text) to service_role;
 grant execute on function public.refund_token(uuid,text,text) to service_role;
 grant execute on function public.admin_add_tokens(uuid,integer,text) to service_role;
+
+
+-- Telegram account linking. Codes are stored only as SHA-256 hashes and expire.
+create table if not exists public.telegram_account_links (
+  telegram_user_id bigint primary key,
+  user_id uuid not null unique references auth.users(id) on delete cascade,
+  telegram_chat_id bigint not null,
+  telegram_username text,
+  linked_at timestamptz not null default now()
+);
+create table if not exists public.telegram_link_codes (
+  code_hash text primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  expires_at timestamptz not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists telegram_link_codes_user_idx on public.telegram_link_codes(user_id);
+alter table public.telegram_account_links enable row level security;
+alter table public.telegram_link_codes enable row level security;
+revoke all on public.telegram_account_links from public, anon, authenticated;
+revoke all on public.telegram_link_codes from public, anon, authenticated;
