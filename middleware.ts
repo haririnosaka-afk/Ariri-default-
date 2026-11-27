@@ -6,7 +6,7 @@ export async function middleware(request: NextRequest) {
   }
   const response=NextResponse.next({request});
   const url=process.env.NEXT_PUBLIC_SUPABASE_URL,anon=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,path=request.nextUrl.pathname;
-  const isPublicPath=path==="/"||path.startsWith("/login")||path.startsWith("/api/auth")||path.startsWith("/auth/callback")||path==="/api/casaku/webhook";
+  const isPublicPath=path==="/"||path.startsWith("/login")||path.startsWith("/api/auth")||path==="/api/telegram/webhook"||path.startsWith("/auth/callback")||path==="/api/casaku/webhook";
   if(!url||!anon){if(isPublicPath)return response;return NextResponse.redirect(new URL("/login?setup=1",request.url));}
   const supabase=createServerClient(url,anon,{cookies:{getAll:()=>request.cookies.getAll(),setAll:(cookiesToSet:{name:string;value:string;options?:any}[])=>cookiesToSet.forEach(({name,value,options})=>{request.cookies.set(name,value);response.cookies.set(name,value,options);})}});
   const {data:{user}}=await supabase.auth.getUser();
