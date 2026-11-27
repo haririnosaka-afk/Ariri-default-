@@ -41,7 +41,9 @@ export async function GET(_req: NextRequest) {
           commands: [
             { command: "start", description: "Buka menu KAZAMA AI" },
             { command: "menu", description: "Tampilkan menu layanan" },
-            { command: "help", description: "Bantuan penggunaan bot" }
+            { command: "help", description: "Bantuan penggunaan bot" },
+            { command: "link", description: "Tautkan akun KAZAMA" },
+            { command: "saldo", description: "Lihat saldo Credit" }
           ]
         }),
         cache: "no-store"
