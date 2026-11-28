@@ -6,7 +6,7 @@ async function showVideoModels(chatId:number,telegramUserId:number,origin:string
   });
 }
 async function saveVideoSession(telegramUserId:number,chatId:number,pendingAction:string) {
-  const {error}=await dbAdmin().from("telegram_bot_sessions").upsert({telegram_user_id:telegramUserId,telegram_chat_id:chatId,pending_action:pendingAction,created_at:new Date().toISOString()},{onConflict:"telegram_user_id"});
+  const {error}=await dbAdmin().from("telegram_video_sessions").upsert({telegram_user_id:telegramUserId,telegram_chat_id:chatId,pending_action:pendingAction,created_at:new Date().toISOString()},{onConflict:"telegram_user_id"});
   if(error) {
     console.error("KAZAMA saveVideoSession Supabase error:", {message:error.message,code:error.code,details:error.details,hint:error.hint});
     throw new Error("Pengaturan video gagal disimpan ke database ("+String(error.code||"unknown")+"). Admin sedang memperbaikinya.");
@@ -302,7 +302,7 @@ export async function POST(req: NextRequest) {
       if(action.startsWith("vratio:")) {
         const ratio=Number(action.slice(7));
         if(![1,2].includes(ratio))throw new Error("Rasio video tidak valid.");
-        const {data:session}=await dbAdmin().from("telegram_bot_sessions").select("pending_action").eq("telegram_user_id",Number(callback.from.id)).maybeSingle();
+        const {data:session}=await dbAdmin().from("telegram_video_sessions").select("pending_action").eq("telegram_user_id",Number(callback.from.id)).maybeSingle();
         const pending=String(session?.pending_action||"");
         if(!pending.startsWith("video_ratio:"))throw new Error("Sesi pilihan mode sudah kedaluwarsa. Mulai lagi dari menu Video Generator.");
         const mode=pending.slice("video_ratio:".length);
@@ -322,7 +322,7 @@ export async function POST(req: NextRequest) {
         const parts=pending.split(":");
         const mode=parts[1],ratio=Number(parts[2]);
         await saveVideoSession(Number(callback.from.id),Number(chatId),"video_prompt:"+mode+":"+ratio+":"+resolution);
-        const hint=mode==="t2v"?"Sekarang kirim prompt teks video.":mode==="i2v"?"Sekarang kirim satu foto dengan caption berisi prompt video.":"Sekarang kirim satu video referensi dengan caption berisi prompt video.";
+        const hint=mode==="t2v"?"Sekarang kirim prompt teks video.":mode==="i2v"?"Sekarang kirim 1–3 foto referensi sekaligus dalam satu album, lalu tulis prompt video pada caption foto pertama.":"Sekarang kirim satu video referensi dengan caption berisi prompt video."
         await say(Number(chatId),"✅ Pengaturan video siap\\nModel: Omni Flash 1.2\\nMode: "+mode.toUpperCase()+"\\nDurasi: 15 detik (tetap)\\nRasio: "+(ratio===1?"Landscape · 16:9":"Portrait · 9:16")+"\\nResolusi: "+resolution+"p\\n\\n"+hint+"\\nKetik /menu untuk membatalkan.");
         return NextResponse.json({ok:true});
       }
@@ -370,6 +370,40 @@ export async function POST(req: NextRequest) {
     }
     if(!(await checkRequiredGroup(Number(chatId),Number(message.from?.id)))) return NextResponse.json({ok:true});
     await ensureTelegramAccount(Number(message.from?.id),message.from||{},Number(chatId));
+    if (message?.media_group_id && message.photo?.length) {
+      const db=dbAdmin();
+      const {data:videoSession}=await db.from("telegram_video_sessions").select("pending_action").eq("telegram_user_id",Number(message.from?.id)).maybeSingle();
+      const pending=String(videoSession?.pending_action||"");
+      if(pending.startsWith("video_prompt:i2v:")){
+        const fileId=message.photo[message.photo.length-1].file_id;
+        const caption=String(message.caption||"").trim();
+        const {error:appendError}=await db.rpc("append_telegram_i2v_photo",{
+          p_media_group_id:String(message.media_group_id),p_telegram_user_id:Number(message.from?.id),
+          p_telegram_chat_id:Number(chatId),p_file_id:fileId,p_prompt:caption
+        });
+        if(appendError)throw appendError;
+        await new Promise(resolve=>setTimeout(resolve,2500));
+        const groupId=String(message.media_group_id);
+        const {data:group,error:readError}=await db.from("telegram_media_groups").select("photo_file_ids,prompt,status,telegram_user_id").eq("media_group_id",groupId).maybeSingle();
+        if(readError)throw readError;
+        if(group&&group.status==="pending"&&Number(group.telegram_user_id)===Number(message.from?.id)){
+          const {data:claimed,error:claimError}=await db.from("telegram_media_groups").update({status:"processing"}).eq("media_group_id",groupId).eq("status","pending").select("photo_file_ids,prompt").maybeSingle();
+          if(claimError)throw claimError;
+          if(claimed){
+            const ids=Array.isArray(claimed.photo_file_ids)?claimed.photo_file_ids.map((x:any)=>String(x)).slice(0,3):[];
+            const prompt=String(claimed.prompt||"").trim();
+            if(!prompt)throw new Error("Prompt belum ditemukan. Kirim ulang album 1–3 foto dengan prompt pada caption foto pertama.");
+            if(ids.length<1||ids.length>3)throw new Error("Mode Image to Video menerima 1–3 foto referensi.");
+            const media=await Promise.all(ids.map((id:string)=>telegramFileData(id)));
+            const [,mode,ratioText,resolutionText]=pending.split(":");
+            await db.from("telegram_media_groups").delete().eq("media_group_id",groupId);
+            await db.from("telegram_video_sessions").delete().eq("telegram_user_id",Number(message.from?.id));
+            await generateTelegramVideo(Number(chatId),Number(message.from?.id),new URL(req.url).origin,"omni_flash",mode,prompt,Number(ratioText),Number(resolutionText),media);
+          }
+        }
+        return NextResponse.json({ok:true});
+      }
+    }
     if (message?.media_group_id && (message.video || message.photo?.length)) {
       const db=dbAdmin();
       const groupId=String(message.media_group_id);
@@ -396,7 +430,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ok:true});
     }
     if(message.photo?.length||message.video) {
-      const {data:mediaSession}=await dbAdmin().from("telegram_bot_sessions").select("pending_action").eq("telegram_user_id",Number(message.from?.id)).maybeSingle();
+      const {data:mediaSession}=await dbAdmin().from("telegram_video_sessions").select("pending_action").eq("telegram_user_id",Number(message.from?.id)).maybeSingle();
       const pendingAction=String(mediaSession?.pending_action||"");
       if(pendingAction.startsWith("video_prompt:")) {
         const [,mode,ratioText,resolutionText]=pendingAction.split(":");
@@ -407,29 +441,34 @@ export async function POST(req: NextRequest) {
         if(mode==="t2v")throw new Error("Mode T2V menggunakan prompt teks tanpa media.");
         const fileId=mode==="i2v"?message.photo[message.photo.length-1].file_id:message.video.file_id;
         const media=[await telegramFileData(fileId)];
-        await dbAdmin().from("telegram_bot_sessions").delete().eq("telegram_user_id",Number(message.from?.id));
+        await dbAdmin().from("telegram_video_sessions").delete().eq("telegram_user_id",Number(message.from?.id));
         await generateTelegramVideo(Number(chatId),Number(message.from?.id),new URL(req.url).origin,"omni_flash",mode,caption,Number(ratioText),Number(resolutionText),media);
         return NextResponse.json({ok:true});
       }
     }
     if(text && !text.startsWith("/")){
       const db=dbAdmin();
-      const {data:session}=await db.from("telegram_bot_sessions").select("pending_action").eq("telegram_user_id",Number(message.from?.id)).maybeSingle();
-      if(session?.pending_action){
-        const pendingAction=String(session.pending_action);
-        if(pendingAction.startsWith("video_prompt:")){
-          const [,mode,ratioText,resolutionText]=pendingAction.split(":");
-          if(mode!=="t2v"){await say(Number(chatId),mode==="i2v"?"📎 Mode I2V perlu foto. Kirim satu foto dengan caption berisi prompt video.":"📎 Mode R2V perlu video referensi. Kirim satu video dengan caption berisi prompt video.");return NextResponse.json({ok:true});}
-          await db.from("telegram_bot_sessions").delete().eq("telegram_user_id",Number(message.from?.id));
+      const {data:videoSession}=await db.from("telegram_video_sessions").select("pending_action").eq("telegram_user_id",Number(message.from?.id)).maybeSingle();
+      const videoAction=String(videoSession?.pending_action||"");
+      if(videoAction.startsWith("video_prompt:")){
+        const [,mode,ratioText,resolutionText]=videoAction.split(":");
+        if(mode==="t2v"){
+          await db.from("telegram_video_sessions").delete().eq("telegram_user_id",Number(message.from?.id));
           await generateTelegramVideo(Number(chatId),Number(message.from?.id),new URL(req.url).origin,"omni_flash",mode,text,Number(ratioText),Number(resolutionText));
         } else {
-          await db.from("telegram_bot_sessions").delete().eq("telegram_user_id",Number(message.from?.id));
-          await handleGeneration(chatId,Number(message.from?.id),new URL(req.url).origin,pendingAction,text,message);
+          await say(Number(chatId),mode==="i2v"?"Untuk mode Image to Video, lampirkan 1–3 foto referensi. Tulis prompt pada caption foto pertama.":"Untuk mode Video to Video, lampirkan video referensi dengan prompt pada caption.");
         }
         return NextResponse.json({ok:true});
       }
+      const {data:session}=await db.from("telegram_bot_sessions").select("pending_action").eq("telegram_user_id",Number(message.from?.id)).maybeSingle();
+      if(session?.pending_action){
+        const pendingAction=String(session.pending_action);
+        await db.from("telegram_bot_sessions").delete().eq("telegram_user_id",Number(message.from?.id));
+        await handleGeneration(chatId,Number(message.from?.id),new URL(req.url).origin,pendingAction,text,message);
+        return NextResponse.json({ok:true});
+      }
     }
-    if (/^\/(start|menu)(?:\s|$)/i.test(text)) { await dbAdmin().from("telegram_bot_sessions").delete().eq("telegram_user_id",Number(message.from?.id)); await sendMenu(chatId, message.from?.first_name || ""); }
+    if (/^\/(start|menu)(?:\s|$)/i.test(text)) { await dbAdmin().from("telegram_bot_sessions").delete().eq("telegram_user_id",Number(message.from?.id)); await dbAdmin().from("telegram_video_sessions").delete().eq("telegram_user_id",Number(message.from?.id)); await sendMenu(chatId, message.from?.first_name || ""); }
     else if (/^\/help(?:\s|$)/i.test(text)) {
       await say(chatId, "Perintah KAZAMA AI:\n/start atau /menu — menu utama\n/saldo — cek Credit\n/video PROMPT — buat video\n/i2v PROMPT + foto — video dari foto\n/motion PROMPT — album video + foto\n/image PROMPT — buat gambar\n/music PROMPT — buat musik\n/tts TEKS — teks ke ucapan\n/voice TEKS — voice generator\n/clone — voice cloning dengan audio\n/status — cek tugas terakhir\n/help — bantuan");
     } else if (text === "/saldo" || text.startsWith("/saldo ")) {
