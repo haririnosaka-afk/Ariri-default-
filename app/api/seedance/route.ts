@@ -64,6 +64,51 @@ async function providerJson(response: Response) {
   return data;
 }
 
+function maskActivityName(value:string){
+ const compact=String(value||"Pengguna").trim().replace(/\\s+/g,"");
+ if(!compact)return "Pengguna";
+ if(compact.length<=4)return compact.slice(0,Math.min(3,compact.length-1))+"*"+compact.slice(-1);
+ return compact.slice(0,3)+"*".repeat(Math.min(12,compact.length-4))+compact.slice(-1);
+}
+async function announceSeedanceSuccess(db:any,userId:string,providerJobId:string){
+ try{
+  const {data:job}=await db.from("generation_jobs").select("id,user_id,source,model,duration_seconds,created_at").eq("user_id",userId).eq("provider",PROVIDER).eq("provider_job_id",providerJobId).maybeSingle();
+  if(!job)return;
+  const {data:config}=await db.from("telegram_bot_config").select("activity_group_chat_id").eq("id",1).maybeSingle();
+  const groupId=Number(config?.activity_group_chat_id||0);
+  if(!groupId||!process.env.TELEGRAM_BOT_TOKEN)return;
+  const [{data:profile},{data:linked},{data:native}]=await Promise.all([
+   db.from("profiles").select("display_name").eq("id",userId).maybeSingle(),
+   db.from("telegram_account_links").select("telegram_username").eq("user_id",userId).maybeSingle(),
+   db.from("telegram_native_accounts").select("telegram_username").eq("user_id",userId).maybeSingle()
+  ]);
+  const display=String(profile?.display_name||linked?.telegram_username||native?.telegram_username||"Pengguna");
+  const {error:insertError}=await db.from("kazama_activity_events").upsert({
+   job_id:job.id,user_id:userId,source:job.source==="telegram"?"telegram":"website",
+   masked_name:maskActivityName(display),model:String(job.model||"Seedance"),
+   duration_seconds:Number(job.duration_seconds||0),credit_cost:1
+  },{onConflict:"job_id",ignoreDuplicates:true});
+  if(insertError)throw insertError;
+  const {data:event}=await db.from("kazama_activity_events").select("id,masked_name,source,model,duration_seconds,credit_cost,created_at,delivery_status").eq("job_id",job.id).single();
+  if(!event||event.delivery_status==="sent")return;
+  const {data:claim}=await db.from("kazama_activity_events").update({delivery_status:"sending"}).eq("id",event.id).eq("delivery_status","pending").select("id").maybeSingle();
+  if(!claim)return;
+  const message="🎬 Video KAZAMA AI berhasil dibuat!\\n\\n"+
+   "👤 Pengguna: "+event.masked_name+"\\n"+
+   "⏱️ Durasi: "+event.duration_seconds+" detik\\n"+
+   "💳 Biaya: "+event.credit_cost+" token\\n"+
+   "🏆 Video sukses ke-"+event.id.toLocaleString("id-ID")+"\\n"+
+   "🎬 Model: "+event.model+"\\n"+
+   "📍 Diproses melalui: "+(event.source==="telegram"?"Bot Telegram":"Website")+"\\n\\n🤖 KAZAMA AI";
+  const response=await fetch("https://api.telegram.org/bot"+process.env.TELEGRAM_BOT_TOKEN+"/sendMessage",{
+   method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chat_id:groupId,text:message}),
+   cache:"no-store",signal:AbortSignal.timeout(15000)
+  });
+  const result=await response.json().catch(()=>({}));
+  if(!response.ok||!result.ok)throw new Error(result.description||"Telegram activity message failed");
+  await db.from("kazama_activity_events").update({delivery_status:"sent",delivered_at:new Date().toISOString()}).eq("id",event.id);
+ }catch(error){console.error("Seedance activity report failed:",error);}
+}
 function jsonError(error: any) {
   return NextResponse.json(
     { ok: false, error: error instanceof Error ? error.message : String(error) },
@@ -98,6 +143,7 @@ export async function GET(req: NextRequest) {
       const video = await providerJson(response);
       const status = String(video.status || "queued").toLowerCase();
       await db.from("generation_jobs").update({ status }).eq("id", row.id).eq("user_id", user.id);
+      if (["completed","complete","done","success","succeeded","finished"].includes(status)) await announceSeedanceSuccess(db,user.id,id);
       if (status === "failed" && row.status !== "failed" && row.token_reference && !String(row.token_reference).startsWith("admin-")) {
         await db.rpc("refund_token", {
           p_user_id: user.id,
