@@ -34,12 +34,26 @@ async function showVoiceLibrary(chatId:number,telegramUserId:number,origin:strin
  const rows:any[][]=[];for(const v of voices.slice(0,40)){const id=String(v.voice_id||v.id||"");if(!id)continue;const label=String(v.name||id).slice(0,28);if(rows.length&&rows[rows.length-1].length===1)rows[rows.length-1].push({text:label,callback_data:"voicepick:"+id});else rows.push([{text:label,callback_data:"voicepick:"+id}]);}
  await say(chatId,"📚 VOICE LIBRARY\n\nPilih voice untuk digunakan di Voice Generator:",{inline_keyboard:rows});
 }
+async function seedanceCall(origin:string,telegramUserId:number,body?:any,query="models") {
+ const secret=process.env.TELEGRAM_WEBHOOK_SECRET;
+ if(!secret)throw new Error("Layanan bot belum dikonfigurasi.");
+ const url=origin+"/api/seedance"+(body?"":"?resource="+encodeURIComponent(query));
+ const response=await fetch(url,{method:body?"POST":"GET",headers:{"x-kazama-internal-secret":secret,"x-kazama-telegram-user-id":String(telegramUserId),...(body?{"Content-Type":"application/json"}:{})},...(body?{body:JSON.stringify(body)}:{}),cache:"no-store",signal:AbortSignal.timeout(60000)});
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok||data.ok===false)throw new Error(data.error||data.detail||"Seedance tidak dapat dihubungi.");
+ return data;
+}
 async function showVideoModels(chatId:number,telegramUserId:number,origin:string) {
-  await say(chatId,"🎬 PILIH MODEL VIDEO\\n\\nPilih model video yang ingin kamu gunakan:",{
-    inline_keyboard:[[
-      {text:"Omni Flash 1.2 · Video Generator",callback_data:"vmodel:omni_flash"}
-    ]]
-  });
+ const rows:any[][]=[[{text:"Omni Flash 1.2 · Video Generator",callback_data:"vmodel:omni_flash"}]];
+ try{
+  const data=await seedanceCall(origin,telegramUserId,undefined,"models");
+  const models=Array.isArray(data.data)?data.data:[];
+  for(const model of models.slice(0,15)){
+   const id=String(model.id||"");if(!id||id.length>48)continue;
+   rows.push([{text:"Seedance · "+String(model.name||id).slice(0,40),callback_data:"sdmodel:"+encodeURIComponent(id)}]);
+  }
+ }catch(error){console.error("Telegram Seedance catalog:",error);}
+ await say(chatId,"🎬 PILIH MODEL VIDEO\\n\\nPilih model video yang ingin kamu gunakan:",{inline_keyboard:rows});
 }
 async function saveVideoSession(telegramUserId:number,chatId:number,pendingAction:string) {
   const {error}=await dbAdmin().from("telegram_video_sessions").upsert({telegram_user_id:telegramUserId,telegram_chat_id:chatId,pending_action:pendingAction,created_at:new Date().toISOString()},{onConflict:"telegram_user_id"});
@@ -339,11 +353,22 @@ async function runStudio(chatId:number, telegramUserId:number, origin:string, re
 async function sendLatestStatus(chatId:number, telegramUserId:number, origin:string) {
   const db=dbAdmin();
   const userId=await telegramAccountUserId(telegramUserId);
-  const {data:jobs,error}=await db.from("generation_jobs").select("provider_job_id,model,prompt,status,created_at").eq("user_id",userId).order("created_at",{ascending:false}).limit(5);
+  const {data:jobs,error}=await db.from("generation_jobs").select("provider_job_id,model,prompt,status,created_at,provider").eq("user_id",userId).order("created_at",{ascending:false}).limit(5);
   if(error||!jobs?.length){await say(chatId,"Belum ada tugas generator di riwayat akunmu.");return;}
   const latest=jobs[0];
   if(latest?.provider_job_id){
     try{
+      if(String(latest.provider||"")==="seedanceoflegends"){
+        const result=await seedanceCall(origin,telegramUserId,undefined,"video&id="+encodeURIComponent(String(latest.provider_job_id)));
+        const status=String(result.status||latest.status||"queued");
+        const url=String(result.video_url||"");
+        if(url&&status.toLowerCase()==="completed"){
+          await telegram("sendVideo",{chat_id:chatId,video:url,caption:"✅ Video Seedance selesai.\\nID: "+latest.provider_job_id});
+          return;
+        }
+        await say(chatId,"🎬 TUGAS SEEDANCE\\n\\nModel: "+(latest.model||"Seedance")+"\\nStatus: "+status+"\\nProgres: "+String(result.progress??"-")+"\\nID: "+latest.provider_job_id+"\\n\\nKetik /status lagi beberapa saat untuk memperbarui.");
+        return;
+      }
       const secret=process.env.TELEGRAM_WEBHOOK_SECRET!;
       const response=await fetch(origin+"/api/studio?resource=job&id="+encodeURIComponent(latest.provider_job_id),{headers:{"x-kazama-internal-secret":secret,"x-kazama-telegram-user-id":String(telegramUserId)},cache:"no-store",signal:AbortSignal.timeout(30000)});
       const data=await response.json();
@@ -482,6 +507,40 @@ export async function POST(req: NextRequest) {
       if(action==="account_credits"){
         const d=await studioGet(new URL(req.url).origin,Number(callback.from.id),"credit");
         await say(Number(chatId),formatCreditPricing(Number(d.credit??d.balance??0)));
+        return NextResponse.json({ok:true});
+      }
+      if(action.startsWith("sdmodel:")) {
+        const model=decodeURIComponent(action.slice(8));
+        const catalog=await seedanceCall(new URL(req.url).origin,Number(callback.from.id),undefined,"models");
+        const selected=(Array.isArray(catalog.data)?catalog.data:[]).find((x:any)=>String(x.id)===model);
+        if(!selected)throw new Error("Model Seedance sudah tidak tersedia. Buka ulang daftar model.");
+        const durations=Array.isArray(selected.durations)?selected.durations:[];
+        if(!durations.length)throw new Error("Model ini belum memiliki pilihan durasi.");
+        await saveTelegramFlow(Number(callback.from.id),Number(chatId),"seedance_duration:"+encodeURIComponent(model));
+        await say(Number(chatId),"⏱️ PILIH DURASI · "+String(selected.name||model),{inline_keyboard:durations.slice(0,12).map((d:number)=>[{text:String(d)+" detik",callback_data:"sddur:"+String(d)}])});
+        return NextResponse.json({ok:true});
+      }
+      if(action.startsWith("sddur:")) {
+        const duration=Number(action.slice(6));
+        if(!Number.isInteger(duration)||duration<1||duration>60)throw new Error("Durasi tidak valid.");
+        const state=await readTelegramFlow(Number(callback.from.id));
+        if(!state.startsWith("seedance_duration:"))throw new Error("Sesi pilihan durasi kedaluwarsa.");
+        const model=state.slice("seedance_duration:".length);
+        await saveTelegramFlow(Number(callback.from.id),Number(chatId),"seedance_ratio:"+model+":"+duration);
+        const catalog=await seedanceCall(new URL(req.url).origin,Number(callback.from.id),undefined,"models");
+        const selected=(Array.isArray(catalog.data)?catalog.data:[]).find((x:any)=>String(x.id)===decodeURIComponent(model));
+        const ratios=Array.isArray(selected?.aspect_ratios)?selected.aspect_ratios:["16:9"];
+        await say(Number(chatId),"📐 PILIH ASPECT RATIO",{inline_keyboard:ratios.slice(0,10).map((x:string)=>[{text:x,callback_data:"sdratio:"+x.replace(":","_")}])});
+        return NextResponse.json({ok:true});
+      }
+      if(action.startsWith("sdratio:")) {
+        const ratio=action.slice(8).replace("_",":");
+        const state=await readTelegramFlow(Number(callback.from.id));
+        if(!state.startsWith("seedance_ratio:"))throw new Error("Sesi pilihan rasio kedaluwarsa.");
+        const parts=state.split(":");
+        const model=parts[1],duration=Number(parts[2]);
+        await saveTelegramFlow(Number(callback.from.id),Number(chatId),"seedance_prompt:"+model+":"+duration+":"+ratio.replace(":","_"));
+        await say(Number(chatId),"✍️ SEEDANCE VIDEO PROMPT\\n\\nKirim prompt video yang ingin dibuat. Setelah prompt dikirim, tugas akan langsung masuk antrean Seedance.");
         return NextResponse.json({ok:true});
       }
       if(action.startsWith("vmodel:")) {
@@ -674,6 +733,15 @@ export async function POST(req: NextRequest) {
     }
     if(text && !text.startsWith("/")){
       const uid=Number(message.from?.id),flow=await readTelegramFlow(uid);
+      if(flow.startsWith("seedance_prompt:")){
+        const [,encodedModel,durationText,ratioText]=flow.split(":");
+        if(!text.trim())throw new Error("Prompt video tidak boleh kosong.");
+        if(text.length>7000)throw new Error("Prompt maksimal 7.000 karakter.");
+        await clearTelegramFlow(uid);
+        const result=await seedanceCall(new URL(req.url).origin,uid,{resource:"generate",model:decodeURIComponent(encodedModel),prompt:text,duration:Number(durationText),aspect_ratio:ratioText.replace("_",":")});
+        await say(Number(chatId),"✅ PERMINTAAN SEEDANCE DITERIMA\\n\\nModel: "+String(result.model||decodeURIComponent(encodedModel))+"\\nDurasi: "+durationText+" detik\\nRasio: "+ratioText.replace("_",":")+"\\nID tugas: "+String(result.id)+"\\nStatus: "+String(result.status||"queued")+"\\n\\nKetik /status untuk memeriksa hasil.");
+        return NextResponse.json({ok:true});
+      }
       if(flow.startsWith("image_prompt:")){
         const [,model,aspect,size]=flow.split(":");await clearTelegramFlow(uid);
         const body:any={model,prompt:text};
