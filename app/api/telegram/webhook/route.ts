@@ -546,6 +546,15 @@ export async function POST(req: NextRequest) {
       }
       return NextResponse.json({ok:true});
     }
+    if(message.audio||message.voice||message.document?.mime_type?.startsWith("audio/")){
+      const uid=Number(message.from?.id),flow=await readTelegramFlow(uid);
+      if(flow.startsWith("clone_audio:")){
+        const [,name,gender]=flow.split(":");const fileId=message.audio?.file_id||message.voice?.file_id||message.document?.file_id;
+        const audio=await telegramFileData(fileId);await clearTelegramFlow(uid);
+        await runStudio(Number(chatId),uid,new URL(req.url).origin,"voice-clone",{audio,name:decodeURIComponent(name||"My cloned voice"),gender},"Voice Cloning");
+        return NextResponse.json({ok:true});
+      }
+    }
     if(message.photo?.length||message.video) {
       const {data:mediaSession}=await dbAdmin().from("telegram_video_sessions").select("pending_action").eq("telegram_user_id",Number(message.from?.id)).maybeSingle();
       const pendingAction=String(mediaSession?.pending_action||"");
@@ -564,6 +573,42 @@ export async function POST(req: NextRequest) {
       }
     }
     if(text && !text.startsWith("/")){
+      const uid=Number(message.from?.id),flow=await readTelegramFlow(uid);
+      if(flow.startsWith("image_prompt:")){
+        const [,model,aspect,size]=flow.split(":");await clearTelegramFlow(uid);
+        const body:any={model,prompt:text};
+        if(model.startsWith("gpt_image")||model.startsWith("mai_image"))body.image_size=aspect;
+        else{body.aspect=aspect;if(model==="nano_banana_2"||model==="nano_banana_pro")body.resolution=size;}
+        await runStudio(Number(chatId),uid,new URL(req.url).origin,"image",body,"Free AI Image");return NextResponse.json({ok:true});
+      }
+      if(flow==="music_prompt"){
+        await clearTelegramFlow(uid);await runStudio(Number(chatId),uid,new URL(req.url).origin,"generate",{mode:"music",prompt:text},"Music Generator");return NextResponse.json({ok:true});
+      }
+      if(flow.startsWith("tts_prompt:")){
+        const voice=flow.slice("tts_prompt:".length);if(text.length>5000)throw new Error("Teks maksimal 5.000 karakter.");
+        await clearTelegramFlow(uid);await runStudio(Number(chatId),uid,new URL(req.url).origin,"generate",{mode:"tts",prompt:text,voice},"Text to Speech");return NextResponse.json({ok:true});
+      }
+      if(flow.startsWith("voice_config:")){
+        const cfg=JSON.parse(flow.slice("voice_config:".length));const parts=text.split(",").map(x=>x.trim());
+        const langs=["id-ID","en-US","en-GB","ja-JP","ko-KR"];
+        if(parts.length!==5||!langs.includes(parts[0])||!Number.isFinite(Number(parts[1]))||Number(parts[1])<0.5||Number(parts[1])>2||parts.slice(2).some(x=>!Number.isFinite(Number(x))||Number(x)<0||Number(x)>1||Math.round(Number(x)*20)!==Number(x)*20))throw new Error("Format tidak valid. Contoh: id-ID,1,0.5,0.75,0");
+        await saveTelegramFlow(uid,Number(chatId),"voice_prompt:"+JSON.stringify({...cfg,language_code:parts[0],speed:Number(parts[1]),stability:Number(parts[2]),similarity_boost:Number(parts[3]),style:Number(parts[4])}));
+        await say(Number(chatId),"TEXT · MAX 5,000 CHARACTERS\\n\\nKirim naskah yang akan diucapkan (maksimal 5.000 karakter). Parameter voice sudah disimpan.");
+        return NextResponse.json({ok:true});
+      }
+      if(flow.startsWith("voice_prompt:")){
+        if(text.length>5000)throw new Error("Teks maksimal 5.000 karakter.");
+        const cfg=JSON.parse(flow.slice("voice_prompt:".length));await clearTelegramFlow(uid);
+        await runStudio(Number(chatId),uid,new URL(req.url).origin,"voice",{text,voice_id:cfg.voice_id,language_code:cfg.language_code,speed:cfg.speed,stability:cfg.stability,similarity_boost:cfg.similarity_boost,style:cfg.style},"Voice Generator");
+        return NextResponse.json({ok:true});
+      }
+      if(flow==="clone_name"){
+        if(!text.trim()||text.length>80)throw new Error("Nama voice wajib diisi (maksimal 80 karakter).");
+        await saveTelegramFlow(uid,Number(chatId),"clone_gender:"+encodeURIComponent(text.trim()));
+        await say(Number(chatId),"VOICE GENDER:",{inline_keyboard:[[{text:"Female",callback_data:"clonegender:female"},{text:"Male",callback_data:"clonegender:male"}]]});
+        return NextResponse.json({ok:true});
+      }
+
       const db=dbAdmin();
       const {data:videoSession}=await db.from("telegram_video_sessions").select("pending_action").eq("telegram_user_id",Number(message.from?.id)).maybeSingle();
       const videoAction=String(videoSession?.pending_action||"");
@@ -585,7 +630,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ok:true});
       }
     }
-    if (/^\/(start|menu)(?:\s|$)/i.test(text)) { await dbAdmin().from("telegram_bot_sessions").delete().eq("telegram_user_id",Number(message.from?.id)); await dbAdmin().from("telegram_video_sessions").delete().eq("telegram_user_id",Number(message.from?.id)); await sendMenu(chatId, message.from?.first_name || ""); }
+    if (/^\/(start|menu)(?:\s|$)/i.test(text)) { await dbAdmin().from("telegram_bot_sessions").delete().eq("telegram_user_id",Number(message.from?.id)); await clearTelegramFlow(Number(message.from?.id)); await sendMenu(chatId, message.from?.first_name || ""); }
     else if (/^\/help(?:\s|$)/i.test(text)) {
       await say(chatId, "Perintah KAZAMA AI:\n/start atau /menu — menu utama\n/link KODE — tautkan akun website\n/saldo — cek Credit\n/video PROMPT — buat video\n/i2v PROMPT + foto — video dari foto\n/motion PROMPT — album video + foto\n/image PROMPT — buat gambar\n/music PROMPT — buat musik\n/tts TEKS — teks ke ucapan\n/voice TEKS — voice generator\n/clone — voice cloning dengan audio\n/status — cek tugas terakhir\n/help — bantuan");
     } else if (/^\/link(?:@KazamaAIBot)?\s+/i.test(text)) { const code=text.replace(/^\/link(?:@KazamaAIBot)?\s+/i,"").trim(); await linkTelegramAccount(Number(chatId),Number(message.from?.id),code,message.from?.username); }
