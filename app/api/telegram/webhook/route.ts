@@ -203,7 +203,7 @@ function formatCreditPricing(credit:number) {
     "",
     "🎨 BIAYA GENERATE",
     "• Free AI Image: 100 Credit / gambar",
-    "• Video Generator: 100 Credit / video",
+    "• Video Generator: 150 Credit / video",
     "• Music Generator: 200 Credit / generate",
     "• Text to Speech: 200 Credit / generate",
     "• Voice Generator: 200 Credit / generate",
