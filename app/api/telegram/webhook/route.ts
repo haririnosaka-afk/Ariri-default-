@@ -7,7 +7,10 @@ async function showVideoModels(chatId:number,telegramUserId:number,origin:string
 }
 async function saveVideoSession(telegramUserId:number,chatId:number,pendingAction:string) {
   const {error}=await dbAdmin().from("telegram_bot_sessions").upsert({telegram_user_id:telegramUserId,telegram_chat_id:chatId,pending_action:pendingAction,created_at:new Date().toISOString()},{onConflict:"telegram_user_id"});
-  if(error)throw new Error("Pengaturan video tidak dapat disimpan. Silakan ulangi.");
+  if(error) {
+    console.error("KAZAMA saveVideoSession Supabase error:", {message:error.message,code:error.code,details:error.details,hint:error.hint});
+    throw new Error("Pengaturan video gagal disimpan ke database ("+String(error.code||"unknown")+"). Admin sedang memperbaikinya.");
+  }
 }
 async function generateTelegramVideo(chatId:number,telegramUserId:number,origin:string,model:string,mode:string,prompt:string,ratio:number,resolution:number,media?:string[]) {
   if(!prompt.trim()) throw new Error("Prompt video tidak boleh kosong.");
