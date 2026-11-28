@@ -194,6 +194,32 @@ async function linkTelegramAccount(chatId:number,telegramUserId:number,code:stri
   await say(chatId,"✅ Akun KAZAMA AI berhasil ditautkan. Saldo Credit dan riwayat generasi sekarang menggunakan akun website yang sama.");
 }
 
+function formatCreditPricing(credit:number) {
+  return [
+    "💳 KAZAMA AI — PRICING & CREDITS",
+    "",
+    "💰 SALDO TERSEDIA",
+    Number(credit||0).toLocaleString("id-ID")+" Credit",
+    "",
+    "🎨 BIAYA GENERATE",
+    "• Free AI Image: 100 Credit / gambar",
+    "• Video Generator: 100 Credit / video",
+    "• Music Generator: 200 Credit / generate",
+    "• Text to Speech: 200 Credit / generate",
+    "• Voice Generator: 200 Credit / generate",
+    "• Voice Cloning: 200 Credit / generate",
+    "",
+    "🛒 PAKET TOP UP",
+    "• 500 Credit — Rp5.000",
+    "• 2.500 Credit — Rp25.000",
+    "• 5.000 Credit — Rp50.000",
+    "• 10.100 Credit — Rp100.000",
+    "",
+    "📲 Paket dan pembayaran QRIS tersedia di website KAZAMA AI:",
+    "https://kazamaai.my.id"
+  ].join("\n");
+}
+
 async function sendBalance(chatId: number, telegramUserId: number) {
   const db = dbAdmin();
   const {data:account,error:accountError}=await db.from("telegram_account_links").select("user_id").eq("telegram_user_id",telegramUserId).single();
@@ -402,7 +428,7 @@ export async function POST(req: NextRequest) {
       }
       if(action==="account_credits"){
         const d=await studioGet(new URL(req.url).origin,Number(callback.from.id),"credit");
-        await say(Number(chatId),"PRICING & CREDITS\\n\\nSaldo tersedia: "+Number(d.credit??d.balance??0).toLocaleString("id-ID")+" Credit\\nFree AI Image: 100 Credit / gambar\\nVideo Generator: 100 Credit / video\\nMusic Generator: 200 Credit / generate\\nText to Speech: 200 Credit / generate\\nVoice Generator: 200 Credit / generate\\nVoice Cloning: 200 Credit / generate\\n\\nPAKET TOP UP\\n500 Credit · Rp5.000\\n2.500 Credit · Rp25.000\\n5.000 Credit · Rp50.000\\n10.100 Credit · Rp100.000\\n\\nPaket dan pembayaran QRIS tersedia di website KAZAMA AI.");
+        await say(Number(chatId),formatCreditPricing(Number(d.credit??d.balance??0)));
         return NextResponse.json({ok:true});
       }
       if(action.startsWith("vmodel:")) {
@@ -642,7 +668,7 @@ export async function POST(req: NextRequest) {
       await say(chatId, "Perintah KAZAMA AI:\n/start atau /menu — menu utama\n/link KODE — tautkan akun website\n/saldo — cek Credit\n/video PROMPT — buat video\n/i2v PROMPT + foto — video dari foto\n/motion PROMPT — album video + foto\n/image PROMPT — buat gambar\n/music PROMPT — buat musik\n/tts TEKS — teks ke ucapan\n/voice TEKS — voice generator\n/clone — voice cloning dengan audio\n/status — cek tugas terakhir\n/help — bantuan");
     } else if(/^\/editor(?:@KazamaAIBot)?$/i.test(text)){await say(Number(chatId),"AI IMAGE EDITOR\\n\\nWebsite KAZAMA saat ini hanya menyediakan upload foto, instruksi edit, dan preview lokal. Generate Edit masih dinonaktifkan karena endpoint belum mendukung foto input.");
     } else if(/^\/library(?:@KazamaAIBot)?$/i.test(text)){await showVoiceLibrary(Number(chatId),Number(message.from?.id),new URL(req.url).origin);
-    } else if(/^\/credits(?:@KazamaAIBot)?$/i.test(text)){const d=await studioGet(new URL(req.url).origin,Number(message.from?.id),"credit");await say(Number(chatId),"PRICING & CREDITS\\nSaldo: "+Number(d.credit??d.balance??0).toLocaleString("id-ID")+" Credit\\nFree AI Image: 100 Credit\\nVideo Generator: 100 Credit\\nMusic / TTS / Voice / Voice Cloning: 200 Credit per generate\\nPaket top up dan QRIS: buka website KAZAMA AI.");
+    } else if(/^\/credits(?:@KazamaAIBot)?$/i.test(text)){const d=await studioGet(new URL(req.url).origin,Number(message.from?.id),"credit");await say(Number(chatId),formatCreditPricing(Number(d.credit??d.balance??0)));
     } else if(/^\/clone(?:@KazamaAIBot)?$/i.test(text)){await saveTelegramFlow(Number(message.from?.id),Number(chatId),"clone_name");await say(Number(chatId),"VOICE NAME\\n\\nMasukkan nama voice yang ingin dibuat.");
     } else if (/^\/link(?:@KazamaAIBot)?\s+/i.test(text)) { const code=text.replace(/^\/link(?:@KazamaAIBot)?\s+/i,"").trim(); await linkTelegramAccount(Number(chatId),Number(message.from?.id),code,message.from?.username); }
     else if (text === "/saldo" || text.startsWith("/saldo ")) {
