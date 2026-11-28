@@ -56,6 +56,8 @@ async function say(chatId: number, text: string, replyMarkup?: any) {
 }
 async function ensureTelegramAccount(telegramUserId:number, from:any, chatId:number=telegramUserId) {
   const db=dbAdmin();
+  const {data:linked}=await db.from("telegram_account_links").select("user_id").eq("telegram_user_id",telegramUserId).maybeSingle();
+  if(linked?.user_id) return linked.user_id as string;
   const {data:existing}=await db.from("telegram_native_accounts").select("user_id").eq("telegram_user_id",telegramUserId).maybeSingle();
   if(existing?.user_id) return existing.user_id as string;
   const email=`tg-${telegramUserId}@telegram.kazamaai.my.id`;
@@ -95,7 +97,7 @@ async function sendMenu(chatId: number, firstName = "") {
     {command:"help",description:"Bantuan"}
   ]}).catch(()=>null);
   return say(chatId,
-    `Halo${name}! 👋 Selamat datang di KAZAMA AI.\n\nAkun Telegram kamu berdiri sendiri, terpisah dari akun website. Saldo Credit dan riwayat Telegram hanya berlaku di bot ini. Pilih layanan di bawah.`,
+    `Halo${name}! 👋 Selamat datang di KAZAMA AI.\n\nAgar saldo Credit dan riwayat sama dengan website, tautkan akun KAZAMA AI melalui kode dari menu Akun website. Kirim /link KODE ke bot.`,
     { inline_keyboard: [
       [{ text: "🎬 Video Generator", callback_data: "tool_video" }],
       [{ text: "🖼️ Image Generator", callback_data: "tool_image" }],
@@ -130,15 +132,29 @@ async function checkRequiredGroup(chatId:number, telegramUserId:number):Promise<
   return false;
 }
 
+async function linkTelegramAccount(chatId:number,telegramUserId:number,code:string,username?:string) {
+  const normalized=String(code||"").trim().toUpperCase();
+  if(!/^[A-F0-9]{10}$/.test(normalized))throw new Error("Format kode tautan tidak valid. Buat kode baru dari menu Akun website.");
+  const hash=createHash("sha256").update(normalized).digest("hex");
+  const db=dbAdmin();
+  const {data:entry,error}=await db.from("telegram_link_codes").select("user_id,expires_at").eq("code_hash",hash).gt("expires_at",new Date().toISOString()).maybeSingle();
+  if(error||!entry)throw new Error("Kode tautan salah atau kedaluwarsa. Buat kode baru dari menu Akun website.");
+  const {error:linkError}=await db.from("telegram_account_links").upsert({
+    telegram_user_id:telegramUserId,user_id:entry.user_id,telegram_chat_id:chatId,
+    telegram_username:username||null,linked_at:new Date().toISOString()
+  },{onConflict:"telegram_user_id"});
+  if(linkError)throw new Error("Akun website sudah tertaut ke akun Telegram lain atau proses tautan gagal. Hubungi admin KAZAMA.");
+  await db.from("telegram_link_codes").delete().eq("code_hash",hash);
+  await say(chatId,"✅ Akun KAZAMA AI berhasil ditautkan. Saldo Credit dan riwayat generasi sekarang menggunakan akun website yang sama.");
+}
+
 async function sendBalance(chatId: number, telegramUserId: number) {
   const db = dbAdmin();
-  const { data: account, error: accountError } = await db.from("telegram_native_accounts")
-    .select("user_id").eq("telegram_user_id", telegramUserId).single();
-  if (accountError || !account) throw new Error("Akun Telegram belum dibuat. Ketik /start terlebih dahulu.");
-  const { data: profile, error } = await db.from("profiles")
-    .select("email,balance").eq("id", account.user_id).single();
-  if (error || !profile) throw new Error("Data saldo akun tidak dapat dibaca.");
-  await say(chatId, `💳 KAZAMA TELEGRAM WALLET\nID Telegram: ${telegramUserId}\nSaldo: ${Number(profile.balance) * 100} Credit\n\nWallet ini terpisah dari akun website.`);
+  const {data:account,error:accountError}=await db.from("telegram_account_links").select("user_id").eq("telegram_user_id",telegramUserId).single();
+  if(accountError||!account)throw new Error("Akun belum ditautkan. Login ke website KAZAMA AI, buat kode tautan dari menu Akun, lalu kirim /link KODE ke bot.");
+  const {data:profile,error}=await db.from("profiles").select("email,balance").eq("id",account.user_id).single();
+  if(error||!profile)throw new Error("Data saldo akun tidak dapat dibaca.");
+  await say(chatId,`💳 KAZAMA AI WALLET\nSaldo: ${Number(profile.balance)*100} Credit\n\nSaldo ini tersinkron dengan akun website KAZAMA AI.`);
 }
 
 
@@ -194,7 +210,7 @@ async function runStudio(chatId:number, telegramUserId:number, origin:string, re
 }
 async function sendLatestStatus(chatId:number, telegramUserId:number, origin:string) {
   const db=dbAdmin();
-  const {data:link,error:linkError}=await db.from("telegram_native_accounts").select("user_id").eq("telegram_user_id",telegramUserId).single();
+  const {data:link,error:linkError}=await db.from("telegram_account_links").select("user_id").eq("telegram_user_id",telegramUserId).single();
   if(linkError||!link)throw new Error("Ketik /start untuk membuat akun Telegram.");
   const {data:jobs,error}=await db.from("generation_jobs").select("provider_job_id,model,prompt,status,created_at").eq("user_id",link.user_id).order("created_at",{ascending:false}).limit(5);
   if(error||!jobs?.length){await say(chatId,"Belum ada tugas generator di riwayat akunmu.");return;}
@@ -238,7 +254,7 @@ async function handleGeneration(chatId:number, telegramUserId:number, origin:str
   if(command==="music") return runStudio(chatId,telegramUserId,origin,"generate",{mode:"music",prompt},"Music Generator");
   if(command==="tts") return runStudio(chatId,telegramUserId,origin,"generate",{mode:"tts",prompt,voice:"Achernar"},"Text to Speech");
   if(command==="voice") {
-    const {data:voices}=await dbAdmin().from("telegram_native_accounts").select("user_id").eq("telegram_user_id",telegramUserId).single();
+    const {data:voices}=await dbAdmin().from("telegram_account_links").select("user_id").eq("telegram_user_id",telegramUserId).single();
     if(!voices)throw new Error("Ketik /start untuk membuat akun Telegram.");
     const catalog=await fetch(origin+"/api/studio?resource=voices",{headers:{"x-kazama-internal-secret":process.env.TELEGRAM_WEBHOOK_SECRET!,"x-kazama-telegram-user-id":String(telegramUserId)},cache:"no-store"});
     const voiceData=await catalog.json().catch(()=>({}));
@@ -470,8 +486,9 @@ export async function POST(req: NextRequest) {
     }
     if (/^\/(start|menu)(?:\s|$)/i.test(text)) { await dbAdmin().from("telegram_bot_sessions").delete().eq("telegram_user_id",Number(message.from?.id)); await dbAdmin().from("telegram_video_sessions").delete().eq("telegram_user_id",Number(message.from?.id)); await sendMenu(chatId, message.from?.first_name || ""); }
     else if (/^\/help(?:\s|$)/i.test(text)) {
-      await say(chatId, "Perintah KAZAMA AI:\n/start atau /menu — menu utama\n/saldo — cek Credit\n/video PROMPT — buat video\n/i2v PROMPT + foto — video dari foto\n/motion PROMPT — album video + foto\n/image PROMPT — buat gambar\n/music PROMPT — buat musik\n/tts TEKS — teks ke ucapan\n/voice TEKS — voice generator\n/clone — voice cloning dengan audio\n/status — cek tugas terakhir\n/help — bantuan");
-    } else if (text === "/saldo" || text.startsWith("/saldo ")) {
+      await say(chatId, "Perintah KAZAMA AI:\n/start atau /menu — menu utama\n/link KODE — tautkan akun website\n/saldo — cek Credit\n/video PROMPT — buat video\n/i2v PROMPT + foto — video dari foto\n/motion PROMPT — album video + foto\n/image PROMPT — buat gambar\n/music PROMPT — buat musik\n/tts TEKS — teks ke ucapan\n/voice TEKS — voice generator\n/clone — voice cloning dengan audio\n/status — cek tugas terakhir\n/help — bantuan");
+    } else if (/^\/link(?:@KazamaAIBot)?\s+/i.test(text)) { const code=text.replace(/^\/link(?:@KazamaAIBot)?\s+/i,"").trim(); await linkTelegramAccount(Number(chatId),Number(message.from?.id),code,message.from?.username); }
+    else if (text === "/saldo" || text.startsWith("/saldo ")) {
       await sendBalance(chatId, Number(message.from?.id));
     } else if (/^\/(video|image|music|tts|voice|clone|motion|i2v)(?:@KazamaAIBot)?(?:\s|$)/i.test(text)) {
       const match=text.match(/^\/(video|image|music|tts|voice|clone|motion|i2v)(?:@KazamaAIBot)?(?:\s+([\s\S]*))?$/i)!;
