@@ -11,11 +11,16 @@ async function currentUser(req?:NextRequest){
   const telegramId=Number(req?.headers.get("x-kazama-telegram-user-id")||0);
   if(!Number.isSafeInteger(telegramId)||telegramId<=0)throw Object.assign(new Error("Identitas Telegram tidak valid."),{status:401});
   const db=adminDb();
-  const {data:link,error}=await db.from("telegram_account_links").select("user_id").eq("telegram_user_id",telegramId).single();
-  if(error||!link)throw Object.assign(new Error("Akun belum ditautkan. Login ke website KAZAMA AI, buat kode tautan dari menu Akun, lalu kirim /link KODE ke bot."),{status:401});
-  const {data:profile,error:profileError}=await db.from("profiles").select("id,email").eq("id",link.user_id).single();
-  if(profileError||!profile)throw Object.assign(new Error("Profil KAZAMA tidak ditemukan."),{status:401});
-  return {id:profile.id,email:profile.email};
+  const {data:link}=await db.from("telegram_account_links").select("user_id").eq("telegram_user_id",telegramId).maybeSingle();
+  let userId=link?.user_id as string|undefined;
+  if(!userId){
+   const {data:native}=await db.from("telegram_native_accounts").select("user_id").eq("telegram_user_id",telegramId).maybeSingle();
+   userId=native?.user_id as string|undefined;
+  }
+  if(!userId)throw Object.assign(new Error("Akun Telegram belum tersedia. Ketik /start untuk membuat akun."),{status:401});
+  const {data:profile,error:profileError}=await db.from("profiles").select("id,email").eq("id",userId).single();
+  if(profileError||!profile)throw Object.assign(new Error("Dompet akun Telegram belum siap. Hubungi admin KAZAMA."),{status:401});
+  return {id:profile.id,email:profile.email||("tg-"+telegramId+"@telegram.kazamaai.my.id")};
  }
  const s=await supabaseServer();const {data,error}=await s.auth.getUser();if(error||!data.user)throw Object.assign(new Error("Silakan masuk terlebih dahulu."),{status:401});return data.user
 }
