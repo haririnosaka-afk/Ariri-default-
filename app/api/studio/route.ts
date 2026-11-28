@@ -20,10 +20,68 @@ async function currentUser(req?:NextRequest){
   if(!userId)throw Object.assign(new Error("Akun Telegram belum tersedia. Ketik /start untuk membuat akun."),{status:401});
   const {data:profile,error:profileError}=await db.from("profiles").select("id,email").eq("id",userId).single();
   if(profileError||!profile)throw Object.assign(new Error("Dompet akun Telegram belum siap. Hubungi admin KAZAMA."),{status:401});
-  return {id:profile.id,email:profile.email||("tg-"+telegramId+"@telegram.kazamaai.my.id")};
+  return {id:profile.id,email:profile.email||("tg-"+telegramId+"@telegram.kazamaai.my.id"),source:"telegram"};
  }
- const s=await supabaseServer();const {data,error}=await s.auth.getUser();if(error||!data.user)throw Object.assign(new Error("Silakan masuk terlebih dahulu."),{status:401});return data.user
+ const s=await supabaseServer();const {data,error}=await s.auth.getUser();if(error||!data.user)throw Object.assign(new Error("Silakan masuk terlebih dahulu."),{status:401});return {...data.user,source:"website"}
 }
+
+function maskActivityName(value:string){
+ const compact=String(value||"Pengguna").trim().replace(/\\s+/g,"");
+ if(!compact)return "Pengguna";
+ if(compact.length<=4)return compact.slice(0,Math.min(3,compact.length-1))+"*"+compact.slice(-1);
+ return compact.slice(0,3)+"*".repeat(Math.min(12,compact.length-4))+compact.slice(-1);
+}
+function elapsedLabel(startedAt:string){
+ const seconds=Math.max(1,Math.floor((Date.now()-new Date(startedAt).getTime())/1000));
+ const minutes=Math.floor(seconds/60),rest=seconds%60;
+ return minutes>0?minutes+" menit "+rest+" detik":rest+" detik";
+}
+async function announceSuccessfulVideo(user:any,providerJobId:string,providerData:any){
+ try{
+  const status=String(providerData?.job?.status||providerData?.status||providerData?.state||"").toLowerCase();
+  if(!["completed","complete","done","success","succeeded","finished"].includes(status))return;
+  const db=adminDb();
+  const {data:job,error:jobError}=await db.from("generation_jobs").select("id,user_id,source,model,resolution,duration_seconds,created_at").eq("user_id",user.id).eq("provider_job_id",providerJobId).maybeSingle();
+  if(jobError||!job||!String(job.model||"").toLowerCase().includes("omni"))return;
+  const {data:config}=await db.from("telegram_bot_config").select("activity_group_chat_id,required_group_chat_id").eq("id",1).maybeSingle();
+  const groupId=Number(config?.activity_group_chat_id||config?.required_group_chat_id||0);
+  if(!groupId||!process.env.TELEGRAM_BOT_TOKEN)return;
+  const [{data:profile},{data:linked},{data:native}]=await Promise.all([
+   db.from("profiles").select("display_name").eq("id",user.id).maybeSingle(),
+   db.from("telegram_account_links").select("telegram_username").eq("user_id",user.id).maybeSingle(),
+   db.from("telegram_native_accounts").select("telegram_username").eq("user_id",user.id).maybeSingle()
+  ]);
+  const display=String(profile?.display_name||linked?.telegram_username||native?.telegram_username||"Pengguna");
+  const {error:insertError}=await db.from("kazama_activity_events").upsert({
+   job_id:job.id,user_id:user.id,source:job.source==="telegram"?"telegram":"website",
+   masked_name:maskActivityName(display),model:String(job.model||"Omni"),
+   duration_seconds:Number(job.duration_seconds||15),credit_cost:1
+  },{onConflict:"job_id",ignoreDuplicates:true});
+  if(insertError)throw insertError;
+  const {data:event,error:eventError}=await db.from("kazama_activity_events").select("id,masked_name,source,model,duration_seconds,credit_cost,created_at,delivery_status").eq("job_id",job.id).single();
+  if(eventError||!event||event.delivery_status==="sent")return;
+  const {data:claim}=await db.from("kazama_activity_events").update({delivery_status:"sending"}).eq("id",event.id).eq("delivery_status","pending").select("id").maybeSingle();
+  if(!claim)return;
+  const sourceLabel=event.source==="telegram"?"Bot Telegram":"Website";
+  const modelLabel=String(event.model||"").toLowerCase().includes("omni")?"Omni Flash 1.2":event.model;
+  const message="🎬 Video KAZAMA AI berhasil dibuat!\\n\\n"+
+   "👤 Pengguna: "+event.masked_name+"\\n"+
+   "⏱️ Durasi generate: "+elapsedLabel(job.created_at||event.created_at)+"\\n"+
+   "💳 Biaya generate: "+event.credit_cost+" token\\n"+
+   "🏆 Video sukses ke-"+event.id.toLocaleString("id-ID")+"\\n"+
+   "🎬 Model: "+modelLabel+"\\n"+
+   "📍 Diproses melalui: "+sourceLabel+"\\n\\n"+
+   "🤖 KAZAMA AI";
+  const response=await fetch("https://api.telegram.org/bot"+process.env.TELEGRAM_BOT_TOKEN+"/sendMessage",{
+   method:"POST",headers:{"Content-Type":"application/json"},
+   body:JSON.stringify({chat_id:groupId,text:message}),cache:"no-store",signal:AbortSignal.timeout(15000)
+  });
+  const result=await response.json().catch(()=>({}));
+  if(!response.ok||!result.ok)throw new Error(result.description||"Telegram activity message failed");
+  await db.from("kazama_activity_events").update({delivery_status:"sent",telegram_sent_at:new Date().toISOString()}).eq("id",event.id);
+ }catch(error){console.error("KAZAMA live activity:",error);}
+}
+
 function isAdmin(email?:string){return !!email&&!!process.env.KAZAMA_ADMIN_EMAIL&&email.toLowerCase()===process.env.KAZAMA_ADMIN_EMAIL.toLowerCase()}
 function headers(){const key=process.env.NEXABOT_API_KEY;if(!key)throw new Error("Engine belum dikonfigurasi. Hubungi administrator KAZAMA AI.");return {"x-api-key":key,"Content-Type":"application/json",Accept:"application/json"}}
 async function parse(r:Response){const raw=await r.text();let d:any;try{d=raw?JSON.parse(raw):{}}catch{throw new Error("Respons layanan tidak valid ("+r.status+").")}if(!r.ok||d?.ok===false)throw Object.assign(new Error(String(d?.error||d?.message||"Layanan sedang tidak tersedia ("+r.status+").").replace(/nexabot/ig,"layanan")),{status:r.status||502});return d}
@@ -45,6 +103,7 @@ export async function GET(req:NextRequest){
   else return NextResponse.json({ok:false,error:"Resource tidak dikenal."},{status:400});
   const d=await parse(await fetch(url,{headers:h,cache:"no-store",signal:AbortSignal.timeout(30000)}));
   if(resource==="credit"){const {data:wallet,error}=await adminDb().from("profiles").select("balance").eq("id",user.id).single();if(error)throw new Error("Dompet belum dibuat. Jalankan schema Supabase.");return NextResponse.json({credit:Number(wallet.balance)*100,balance:Number(wallet.balance)*100,video_credit_cost:d.video_credit_cost??d.credit_cost,video_credit_costs:d.video_credit_costs,voice_credit_cost:d.voice_credit_cost,image_credit_cost:d.image_credit_cost,clone_credit_cost:d.clone_credit_cost})}
+  if(resource==="job")await announceSuccessfulVideo(user,String(q.get("id")||""),d);
   return NextResponse.json(d);
  }catch(e){return NextResponse.json({ok:false,error:e instanceof Error?e.message:String(e)},{status:(e as any)?.status||502})}
 }
@@ -76,7 +135,7 @@ export async function POST(req:NextRequest){
  try{
   if(!isAdmin(user.email)){chargeRef=crypto.randomUUID();const videoModes=["t2v","sfv","i2v","r2v","extend"];const creditUnits=resource==="image"?1:resource==="generate"&&videoModes.includes(String(body.mode||""))?1:2;const {error}=await adminDb().rpc("spend_token",{p_user_id:user.id,p_reference_id:chargeRef,p_cost_units:creditUnits});if(error)throw Object.assign(new Error(error.message.includes("insufficient_tokens")?"Token tidak cukup. Silakan isi saldo terlebih dahulu.":error.message),{status:error.message.includes("insufficient_tokens")?402:500});charged=true}
   const h=headers();const r=await fetch(BASE+paths[resource],{method:"POST",headers:h,body:JSON.stringify(body),cache:"no-store",signal:AbortSignal.timeout(resource==="voice"||resource==="image"||resource==="voice-clone"?280000:60000)});const d=await parse(r);providerAccepted=true;
-  if(d.job_id){const db=adminDb();const jobRow={user_id:user.id,token_reference:chargeRef||("admin-"+crypto.randomUUID()),provider_job_id:String(d.job_id),provider_task_id:String(d.job_id),provider:"nexabot",status:"queued",model:String(body.model||body.mode||resource),resolution:String(body.resolution??"standard"),duration_seconds:Number(body.duration??0),aspect_ratio:String(body.ratio??body.aspect??"auto"),prompt:String(body.prompt||body.text||body.input||"")};const {error:linkError}=await db.from("generation_jobs").insert(jobRow);if(linkError){console.error("generation_jobs insert failed:",linkError.message);return NextResponse.json({...d,token_charged:charged,token_reference:chargeRef,tracking_warning:"Tugas sudah diterima provider. Riwayat sedang disinkronkan; jangan generate ulang."},{status:r.status});}}
+  if(d.job_id){const db=adminDb();const jobRow={user_id:user.id,source:user.source==="telegram"?"telegram":"website",token_reference:chargeRef||("admin-"+crypto.randomUUID()),provider_job_id:String(d.job_id),provider_task_id:String(d.job_id),provider:"nexabot",status:"queued",model:String(body.model||body.mode||resource),resolution:String(body.resolution??"standard"),duration_seconds:Number(body.duration??0),aspect_ratio:String(body.ratio??body.aspect??"auto"),prompt:String(body.prompt||body.text||body.input||"")};const {error:linkError}=await db.from("generation_jobs").insert(jobRow);if(linkError){console.error("generation_jobs insert failed:",linkError.message);return NextResponse.json({...d,token_charged:charged,token_reference:chargeRef,tracking_warning:"Tugas sudah diterima provider. Riwayat sedang disinkronkan; jangan generate ulang."},{status:r.status});}}
   return NextResponse.json({...d,token_charged:charged,token_reference:chargeRef},{status:r.status});
  }catch(e){if(charged&&chargeRef&&!providerAccepted){try{await adminDb().rpc("refund_token",{p_user_id:user.id,p_reference_id:chargeRef,p_reason:"Provider request failed"})}catch{}}const providerMessage=e instanceof Error?e.message:String(e);const lowProviderCredit=/(kredit|credit|saldo|balance).{0,50}(tidak cukup|kurang|habis|insufficient|not enough|exhausted)|(insufficient|not enough|exhausted).{0,50}(kredit|credit|saldo|balance)/i.test(providerMessage);if(lowProviderCredit&&!isAdmin(user.email))return NextResponse.json({ok:false,maintenance:true,error:"KAZAMA AI sedang dalam pemeliharaan. Admin sedang mengisi ulang saldo generator. Mohon tunggu beberapa saat dan coba kembali nanti. Token Anda tidak dipotong."},{status:503});return NextResponse.json({ok:false,error:providerMessage},{status:(e as any)?.status||502})}
 }
