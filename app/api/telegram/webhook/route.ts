@@ -458,7 +458,10 @@ export async function POST(req: NextRequest) {
             await saveTelegramFlow(Number(callback.from.id),Number(chatId),"music_prompt");
             await say(Number(chatId),"MUSIC GENERATOR\\n\\nMUSIC DESCRIPTION\\nGenre, mood, instruments, tempo, atmosphere, and structure...\\n\\nKirim deskripsi musik. Biaya: 200 Credit.");
           }
-        } else if(action==="tool_image"){await showImageModels(Number(chatId));\n        } else if(action==="tool_tts"){await showTtsVoices(Number(chatId));\n        } else if(action==="tool_voice"){await showVoiceLibrary(Number(chatId),Number(callback.from.id),new URL(req.url).origin);\n        } else if(action==="tool_motion"){
+        } else if(action==="tool_image"){await showImageModels(Number(chatId));
+        } else if(action==="tool_tts"){await showTtsVoices(Number(chatId));
+        } else if(action==="tool_voice"){await showVoiceLibrary(Number(chatId),Number(callback.from.id),new URL(req.url).origin);
+        } else if(action==="tool_motion"){
           await say(chatId,"🎭 MOTION CONTROL\n\nKirim satu video sumber dan satu foto identitas sebagai satu album Telegram. Beri caption album: /motion diikuti prompt gerakan yang diinginkan.");
         } else if(action==="tool_clone"){
           await say(chatId,"🎙️ VOICE CLONING\n\nKirim file audio 15–60 detik dengan caption /clone diikuti nama voice.");
@@ -545,6 +548,15 @@ export async function POST(req: NextRequest) {
         await say(Number(chatId),"📎 Media diterima. Kirim video sumber dan foto identitas sebagai satu album Telegram (pilih keduanya sekaligus), lalu beri caption /motion di album tersebut.");
       }
       return NextResponse.json({ok:true});
+    }
+    if(message.audio||message.voice||message.document?.mime_type?.startsWith("audio/")){
+      const uid=Number(message.from?.id),flow=await readTelegramFlow(uid);
+      if(flow.startsWith("clone_audio:")){
+        const [,name,gender]=flow.split(":");const fileId=message.audio?.file_id||message.voice?.file_id||message.document?.file_id;
+        const audio=await telegramFileData(fileId);await clearTelegramFlow(uid);
+        await runStudio(Number(chatId),uid,new URL(req.url).origin,"voice-clone",{audio,name:decodeURIComponent(name||"My cloned voice"),gender},"Voice Cloning");
+        return NextResponse.json({ok:true});
+      }
     }
     if(message.audio||message.voice||message.document?.mime_type?.startsWith("audio/")){
       const uid=Number(message.from?.id),flow=await readTelegramFlow(uid);
