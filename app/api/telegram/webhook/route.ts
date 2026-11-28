@@ -268,9 +268,11 @@ async function sendLatestStatus(chatId:number, telegramUserId:number, origin:str
       const data=await response.json();
       const job=data.job||data.data||data;
       const status=String(job.status||job.state||latest.status||"processing");
-      const url=String(job.url||job.video_url||job.output_url||job.result_url||"");
+      const url=String(job.url||job.video_url||job.audio_url||job.image_url||job.output_url||job.result_url||"");
       if(url&&/^(completed|done|success|succeeded)$/i.test(status)){
-        await telegram("sendVideo",{chat_id:chatId,video:url,caption:"✅ Video KAZAMA AI selesai.\nID: "+latest.provider_job_id});
+        if(["music","tts"].includes(String(latest.model||"")))await telegram("sendAudio",{chat_id:chatId,audio:url,caption:"✅ Audio KAZAMA AI selesai.\\nID: "+latest.provider_job_id});
+        else if(String(latest.model||"")==="image")await telegram("sendPhoto",{chat_id:chatId,photo:url,caption:"✅ Gambar KAZAMA AI selesai.\\nID: "+latest.provider_job_id});
+        else await telegram("sendVideo",{chat_id:chatId,video:url,caption:"✅ Video KAZAMA AI selesai.\\nID: "+latest.provider_job_id});
         return;
       }
       await say(chatId,"📽️ TUGAS TERAKHIR\n\nModel: "+(latest.model||"KAZAMA Generator")+"\nStatus: "+status+"\nID: "+latest.provider_job_id+"\n\nKirim /status lagi beberapa saat untuk memperbarui.");
