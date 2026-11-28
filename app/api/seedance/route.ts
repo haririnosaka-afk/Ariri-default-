@@ -114,6 +114,23 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   let user: any;
   try { user = await currentUser(req); } catch (error) { return jsonError(error); }
+  if (req.headers.get("content-type")?.includes("multipart/form-data")) {
+    try {
+      const incoming = await req.formData();
+      const file = incoming.get("file");
+      if (!(file instanceof File)) return NextResponse.json({ ok: false, error: "File referensi wajib dipilih." }, { status: 400 });
+      if (file.size > 30 * 1024 * 1024) return NextResponse.json({ ok: false, error: "Ukuran file maksimal 30 MB." }, { status: 400 });
+      const outgoing = new FormData();
+      outgoing.append("file", file, file.name);
+      const kind = incoming.get("kind");
+      if (typeof kind === "string" && kind) outgoing.append("kind", kind);
+      const response = await fetch(BASE + "/files", {
+        method: "POST", headers: apiHeaders(), body: outgoing,
+        cache: "no-store", signal: AbortSignal.timeout(60000)
+      });
+      return NextResponse.json(await providerJson(response));
+    } catch (error) { return jsonError(error); }
+  }
   let body: any;
   try { body = await req.json(); } catch {
     return NextResponse.json({ ok: false, error: "Body JSON tidak valid." }, { status: 400 });
