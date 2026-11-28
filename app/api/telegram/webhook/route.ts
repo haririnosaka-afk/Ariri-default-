@@ -212,8 +212,8 @@ function formatCreditPricing(credit:number) {
     "5.000 Credit · Rp50.000",
     "10.100 Credit · Rp100.000",
     "",
-    "Paket dan pembayaran tersedia di website KAZAMA AI.",
-    "https://kazamaai.my.id"
+    "PEMBAYARAN TELEGRAM",
+    "Pembayaran langsung di Telegram sedang disiapkan. Kamu tidak perlu dialihkan ke website."
   ].join("\n");
 }
 
