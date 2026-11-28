@@ -85,6 +85,7 @@ async function sendMenu(chatId: number, firstName = "") {
     {command:"start",description:"Buka menu utama"},
     {command:"menu",description:"Tampilkan layanan"},
     {command:"saldo",description:"Lihat saldo Credit"},
+    {command:"link",description:"Tautkan akun website KAZAMA"},
     {command:"video",description:"Buat video AI"},
     {command:"i2v",description:"Buat video dari foto"},
     {command:"motion",description:"Motion Control"},
