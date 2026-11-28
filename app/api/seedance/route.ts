@@ -8,6 +8,19 @@ export const maxDuration = 60;
 const BASE = "https://seedanceoflegends.com/mx/v1";
 const PROVIDER = "seedanceoflegends";
 
+// Katalog publik KAZAMA dibatasi hanya ke dua model pilihan.
+function isAllowedSeedanceModel(model: any) {
+  const id = String(model?.id || "").toLowerCase();
+  const name = String(model?.name || model?.title || "").toLowerCase();
+  const identity = id + " " + name;
+  const magi2 = /(^|[^a-z0-9])magi[\\s._-]*2([^0-9]|$)/i.test(identity);
+  const seedance20_1080 = /seedance/.test(identity) &&
+    /(^|[^0-9])2[._ -]?0([^0-9]|$)/i.test(identity) &&
+    /1080p/i.test(identity);
+  return magi2 || seedance20_1080;
+}
+
+
 function dbAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -127,7 +140,12 @@ export async function GET(req: NextRequest) {
       const response = await fetch(BASE + path, {
         headers: apiHeaders(), cache: "no-store", signal: AbortSignal.timeout(30000)
       });
-      return NextResponse.json(await providerJson(response));
+      const data = await providerJson(response);
+      if (resource === "models") {
+        const models = Array.isArray(data?.data) ? data.data.filter(isAllowedSeedanceModel) : [];
+        return NextResponse.json({ ...data, data: models });
+      }
+      return NextResponse.json(data);
     }
     if (resource === "video") {
       const id = String(query.get("id") || "").trim();
@@ -191,6 +209,9 @@ export async function POST(req: NextRequest) {
   const aspectRatio = String(body.aspect_ratio || "16:9");
   if (!model || !prompt || !Number.isInteger(duration) || duration < 1) {
     return NextResponse.json({ ok: false, error: "Model, prompt, dan durasi yang valid wajib diisi." }, { status: 400 });
+  }
+  if (!isAllowedSeedanceModel({ id: model, name: model })) {
+    return NextResponse.json({ ok: false, error: "Model ini tidak tersedia di KAZAMA. Pilih Magi-2 atau Seedance 2.0 1080p." }, { status: 400 });
   }
   for (const field of ["images", "videos", "audios"]) {
     if (body[field] !== undefined && (!Array.isArray(body[field]) || body[field].some((x: any) => typeof x !== "string"))) {
