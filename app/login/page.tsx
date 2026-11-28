@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { Sparkles, LogIn, UserPlus, ShieldCheck } from "lucide-react";
 
@@ -13,6 +13,31 @@ export default function LoginPage() {
   const [message,setMessage]=useState("");
   const [error,setError]=useState("");
   function destination(){const requested=new URLSearchParams(window.location.search).get("next")||"/studio";return requested.startsWith("/")&&!requested.startsWith("//")?requested:"/studio";}
+
+  useEffect(()=>{
+    if(signup||verifyMode)return;
+    const container=document.getElementById("telegram-login-widget");
+    if(!container)return;
+    (window as any).onTelegramAuth=async(user:any)=>{
+      setBusy(true);setError("");setMessage("");
+      try{
+        const response=await fetch("/api/auth/telegram",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(user)});
+        const result=await response.json().catch(()=>({}));
+        if(!response.ok||!result.token_hash)throw new Error(result.error||"Login Telegram gagal diverifikasi.");
+        const {error}=await client().auth.verifyOtp({token_hash:result.token_hash,type:"magiclink"});
+        if(error)throw error;
+        location.href=destination();
+      }catch(e){setError(e instanceof Error?e.message:"Login Telegram gagal.");setBusy(false);}
+    };
+    const script=document.createElement("script");
+    script.async=true;script.src="https://telegram.org/js/telegram-widget.js?22";
+    script.setAttribute("data-telegram-login","KazamaAIBot");
+    script.setAttribute("data-size","large");
+    script.setAttribute("data-userpic","false");
+    script.setAttribute("data-onauth","onTelegramAuth(user)");
+    container.replaceChildren(script);
+    return ()=>{container.replaceChildren();delete (window as any).onTelegramAuth;};
+  },[signup,verifyMode]);
   function client(){
     const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -72,6 +97,7 @@ export default function LoginPage() {
       {verifyMode?<button type="button" disabled={busy} onClick={resendCode} style={secondaryStyle}>Kirim ulang kode</button>:<>
         <div style={{display:"flex",alignItems:"center",gap:12,color:"#657084",fontSize:11,margin:"18px 0"}}><span style={{height:1,background:"#283244",flex:1}}/>ATAU<span style={{height:1,background:"#283244",flex:1}}/></div>
         <button type="button" disabled={busy} onClick={googleLogin} style={googleStyle}><GoogleMark/> Lanjutkan dengan Google</button>
+        {!signup&&<div style={{display:"flex",justifyContent:"center",marginTop:14,padding:12,background:"#080a10",border:"1px solid #283244",borderRadius:12}}><div id="telegram-login-widget" aria-label="Login dengan Telegram"/></div>}
         <button type="button" onClick={()=>{setSignup(!signup);setError("");setMessage("")}} style={secondaryStyle}>{signup?"Sudah punya akun? Masuk":"Belum punya akun? Daftar"}</button>
       </>}
       <p style={{color:"#657084",fontSize:11,textAlign:"center",marginTop:14}}>Akun baru dimulai dengan saldo 0 token.</p>
