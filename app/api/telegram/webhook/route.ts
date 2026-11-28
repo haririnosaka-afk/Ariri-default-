@@ -1,3 +1,39 @@
+const TELEGRAM_IMAGE_MODELS=[
+ ["nano_banana_2","Nano Banana 2"],["nano_banana_2_lite","Nano Banana 2 Lite"],["nano_banana_pro","Nano Banana Pro"],["nano_banana","Nano Banana"],
+ ["gpt_image_2","GPT Image 2"],["gpt_image_2_5_flare","GPT Image 2.5 Flare"],["gpt_image_2_5_sunburst","GPT Image 2.5 Sunburst"],
+ ["mai_image_26_flash","MAI Image 2.6 Flash"],["mai_image_26","MAI Image 2.6"],["mai_image_25","MAI Image 2.5"],["mai_image_25_pro","MAI Image 2.5 Pro"]
+] as const;
+const TELEGRAM_IMAGE_ASPECTS=["auto","21:9","16:9","3:2","4:3","5:4","1:1","4:5","3:4","2:3","9:16","4:1","1:4","8:1","1:8"];
+const TELEGRAM_IMAGE_SIZES=["0.5K","1K","2K","4K"];
+const TELEGRAM_IMAGE_OUTPUTS=["landscape_4_3","landscape_16_9","square_hd","square","portrait_4_3","portrait_16_9","auto"];
+const TELEGRAM_VOICES=["Achernar","Achird","Algenib","Algieba","Alnilam","Aoede","Autonoe","Callirrhoe","Charon","Despina","Enceladus","Erinome","Fenrir","Gacrux","Iapetus","Kore","Laomedeia","Leda","Orus","Puck","Pulcherrima","Rasalgethi","Sadachbia","Sadaltager","Schedar","Sulafat","Umbriel","Vindemiatrix","Zephyr","Zubenelgenubi"];
+async function saveTelegramFlow(userId:number,chatId:number,state:string){
+ const {error}=await dbAdmin().from("telegram_video_sessions").upsert({telegram_user_id:userId,telegram_chat_id:chatId,pending_action:state,created_at:new Date().toISOString()},{onConflict:"telegram_user_id"});
+ if(error)throw new Error("Pengaturan layanan tidak dapat disimpan.");
+}
+async function readTelegramFlow(userId:number){
+ const {data,error}=await dbAdmin().from("telegram_video_sessions").select("pending_action").eq("telegram_user_id",userId).maybeSingle();
+ if(error)throw error;return String(data?.pending_action||"");
+}
+async function clearTelegramFlow(userId:number){await dbAdmin().from("telegram_video_sessions").delete().eq("telegram_user_id",userId);}
+async function studioGet(origin:string,telegramUserId:number,resource:string){
+ const response=await fetch(origin+"/api/studio?resource="+encodeURIComponent(resource),{headers:{"x-kazama-internal-secret":process.env.TELEGRAM_WEBHOOK_SECRET!,"x-kazama-telegram-user-id":String(telegramUserId)},cache:"no-store",signal:AbortSignal.timeout(30000)});
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok||data.ok===false)throw new Error(data.error||"Katalog KAZAMA tidak dapat dimuat.");return data;
+}
+async function showImageModels(chatId:number){
+ await say(chatId,"🖼️ IMAGE GENERATOR · TEXT TO IMAGE\n\nPilih IMAGE MODEL seperti di website KAZAMA AI:",{inline_keyboard:TELEGRAM_IMAGE_MODELS.map(([id,label])=>[{text:label,callback_data:"imodel:"+id}])});
+}
+async function showTtsVoices(chatId:number){
+ const rows=TELEGRAM_VOICES.reduce((a:string[][],v,i)=>{if(i%2===0)a.push([v]);else a[a.length-1].push(v);return a;},[]).map(row=>row.map(v=>({text:v,callback_data:"ttsvoice:"+v})));
+ await say(chatId,"🗣️ TEXT TO SPEECH\n\nPilih VOICE. Pilihan mengikuti daftar website:",{inline_keyboard:rows});
+}
+async function showVoiceLibrary(chatId:number,telegramUserId:number,origin:string){
+ const data=await studioGet(origin,telegramUserId,"voices");const voices=Array.isArray(data.voices)?data.voices:[];
+ if(!voices.length){await say(chatId,"Katalog Voice belum tersedia saat ini.");return;}
+ const rows:any[][]=[];for(const v of voices.slice(0,40)){const id=String(v.voice_id||v.id||"");if(!id)continue;const label=String(v.name||id).slice(0,28);if(rows.length&&rows[rows.length-1].length===1)rows[rows.length-1].push({text:label,callback_data:"voicepick:"+id});else rows.push([{text:label,callback_data:"voicepick:"+id}]);}
+ await say(chatId,"📚 VOICE LIBRARY\n\nPilih voice untuk digunakan di Voice Generator:",{inline_keyboard:rows});
+}
 async function showVideoModels(chatId:number,telegramUserId:number,origin:string) {
   await say(chatId,"🎬 PILIH MODEL VIDEO\\n\\nPilih model video yang ingin kamu gunakan:",{
     inline_keyboard:[[
@@ -102,13 +138,18 @@ async function sendMenu(chatId: number, firstName = "") {
     `Halo${name}! 👋 Selamat datang di KAZAMA AI.\n\nAgar saldo Credit dan riwayat sama dengan website, tautkan akun KAZAMA AI melalui kode dari menu Akun website. Kirim /link KODE ke bot.`,
     { inline_keyboard: [
       [{ text: "🎬 Video Generator", callback_data: "tool_video" }],
-      [{ text: "🖼️ Image Generator", callback_data: "tool_image" }],
-      [{ text: "🎭 Motion Control", callback_data: "tool_motion" }],
+      [{ text: "🖼️ Free AI Image", callback_data: "tool_image" }],
+      [{ text: "🪄 AI Image Editor", callback_data: "tool_editor" }],
       [{ text: "🎵 Music Generator", callback_data: "tool_music" }],
-      [{ text: "🎙️ Voice Studio", callback_data: "tool_voice" }],
-      [{ text: "💳 Saldo Credit", callback_data: "account_balance" }],
-      [{ text: "📚 Riwayat Telegram", callback_data: "account_history" }],
-      [{ text: "🌐 Buka Website", url: "https://kazamaai.my.id" }],
+      [{ text: "🗣️ Text to Speech", callback_data: "tool_tts" }],
+      [{ text: "🎙️ Voice Generator", callback_data: "tool_voice" }],
+      [{ text: "🎤 Voice Cloning", callback_data: "tool_clone" }],
+      [{ text: "📚 Voice Library", callback_data: "tool_library" }],
+      [{ text: "🎭 Motion Control", callback_data: "tool_motion" }],
+      [{ text: "💳 Pricing & Credits", callback_data: "account_credits" }],
+      [{ text: "👤 My Account / Saldo", callback_data: "account_balance" }],
+      [{ text: "📂 My Creations", callback_data: "account_history" }],
+      [{ text: "🌐 Buka Website", url: "https://kazamaai.my.id" }]
     ] }
   );
 }
