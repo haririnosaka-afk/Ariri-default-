@@ -190,7 +190,9 @@ export async function fetchCatalog(cookie: string): Promise<{ images: JimengMode
       if (typeof node.model_req_key !== "string" || node.model_req_key === "") continue;
       if (!byKey.has(node.model_req_key)) byKey.set(node.model_req_key, normalizeModel(node, kind));
     }
-    const values: JimengModel[] = [];\n    byKey.forEach((value) => values.push(value));\n    return values;
+    const values: JimengModel[] = [];
+    byKey.forEach((value) => values.push(value));
+    return values;
   };
   const images = imageResult.status === "fulfilled" ? unique(Array.isArray((imageResult.value as any)?.model_list) ? (imageResult.value as any).model_list : collectModelNodes(imageResult.value), "image") : [];
   const videos = videoResult.status === "fulfilled" ? unique(Array.isArray((videoResult.value as any)?.model_list) ? (videoResult.value as any).model_list : collectModelNodes(videoResult.value), "video") : [];
