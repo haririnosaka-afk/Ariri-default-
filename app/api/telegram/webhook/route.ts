@@ -178,10 +178,13 @@ async function showVideoModels(chatId:number,telegramUserId:number,origin:string
     return m.model_key && !/seedance/i.test(name+" "+m.model_key);
   });
   if(!models.length)throw new Error("Belum ada model video yang tersedia.");
-  const rows=models.slice(0,40).map((m:any)=>[{
-    text:(String(m.name||m.title||m.model_key).replace(/nexa\s*bot|pos\s*bot/ig,"").trim().slice(0,42)+" · "+String(m.customer_tokens??"-")+" Credit").slice(0,60),
-    callback_data:"vmodel:"+String(m.model_key).slice(0,48)
-  }]);
+  const rows=models.slice(0,40).map((m:any)=>{
+    const name=String(m.name||m.title||m.model_key).replace(/nexa\s*bot|pos\s*bot/ig,"").trim();
+    const duration=Number(m.duration_seconds??m.duration??(/15s/i.test(name+" "+m.model_key)?15:0));
+    const credits=Number(m.customer_credits??(Number(m.customer_tokens||0)*200));
+    const label=(name+(duration>0?" · "+duration+" detik":"")+" · "+(credits>0?credits:"-")+" Credit").slice(0,60);
+    return [{text:label,callback_data:"vmodel:"+String(m.model_key).slice(0,48)}];
+  });
   await say(chatId,"🎬 PILIH MODEL VIDEO\n\nPilih model yang ingin kamu gunakan. Harga Credit ditampilkan di setiap pilihan.",{inline_keyboard:rows});
 }
 async function generateTelegramVideo(chatId:number,telegramUserId:number,origin:string,model:string,prompt:string) {
