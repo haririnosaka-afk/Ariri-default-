@@ -138,21 +138,25 @@ async function sendMenu(chatId: number, firstName = "") {
     {command:"help",description:"Bantuan"}
   ]}).catch(()=>null);
   return say(chatId,
-    `Halo${name}! 👋 Selamat datang di KAZAMA AI.\n\nAgar saldo Credit dan riwayat sama dengan website, tautkan akun KAZAMA AI melalui kode dari menu Akun website. Kirim /link KODE ke bot.`,
+    `✦ KAZAMA AI · CREATIVE STUDIO
+Halo${name}! Selamat datang di ruang kreatifmu.
+
+Ubah ide menjadi video, gambar, musik, dan suara dalam satu studio.
+Pilih fitur di bawah untuk mulai berkarya.
+
+CREDIT SYSTEM
+Saldo dan riwayat tersinkron dengan website setelah akun ditautkan.
+Ketik /link KODE untuk menautkan akun dari menu Akun di website.`,
     { inline_keyboard: [
-      [{ text: "🎬 Video Generator", callback_data: "tool_video" }],
-      [{ text: "🖼️ Free AI Image", callback_data: "tool_image" }],
-      [{ text: "🪄 AI Image Editor", callback_data: "tool_editor" }],
-      [{ text: "🎵 Music Generator", callback_data: "tool_music" }],
-      [{ text: "🗣️ Text to Speech", callback_data: "tool_tts" }],
-      [{ text: "🎙️ Voice Generator", callback_data: "tool_voice" }],
-      [{ text: "🎤 Voice Cloning", callback_data: "tool_clone" }],
-      [{ text: "📚 Voice Library", callback_data: "tool_library" }],
-      [{ text: "🎭 Motion Control", callback_data: "tool_motion" }],
-      [{ text: "💳 Pricing & Credits", callback_data: "account_credits" }],
-      [{ text: "👤 My Account / Saldo", callback_data: "account_balance" }],
-      [{ text: "📂 My Creations", callback_data: "account_history" }],
-      [{ text: "🌐 Buka Website", url: "https://kazamaai.my.id" }]
+      [{ text: "✦ VIDEO GENERATOR", callback_data: "tool_video" }],
+      [{ text: "✧ AI IMAGE GENERATOR", callback_data: "tool_image" }],
+      [{ text: "◈ MOTION CONTROL", callback_data: "tool_motion" }],
+      [{ text: "♫ MUSIC GENERATOR", callback_data: "tool_music" }],
+      [{ text: "♬ VOICE STUDIO · TTS", callback_data: "tool_tts" }, { text: "🎙 VOICE", callback_data: "tool_voice" }],
+      [{ text: "🎤 VOICE CLONING", callback_data: "tool_clone" }, { text: "📚 VOICE LIBRARY", callback_data: "tool_library" }],
+      [{ text: "CREDIT & HARGA", callback_data: "account_credits" }],
+      [{ text: "AKUN & SALDO", callback_data: "account_balance" }, { text: "RIWAYAT KREASI", callback_data: "account_history" }],
+      [{ text: "BUKA KAZAMA AI WEBSITE ↗", url: "https://kazamaai.my.id" }]
     ] }
   );
 }
@@ -196,26 +200,27 @@ async function linkTelegramAccount(chatId:number,telegramUserId:number,code:stri
 
 function formatCreditPricing(credit:number) {
   return [
-    "💳 KAZAMA AI — PRICING & CREDITS",
+    "✦ KAZAMA AI · CREATIVE STUDIO",
+    "CREDIT & PRICING",
     "",
-    "💰 SALDO TERSEDIA",
+    "YOUR BALANCE",
     Number(credit||0).toLocaleString("id-ID")+" Credit",
     "",
-    "🎨 BIAYA GENERATE",
-    "• Free AI Image: 100 Credit / gambar",
-    "• Video Generator: 150 Credit / video",
-    "• Music Generator: 200 Credit / generate",
-    "• Text to Speech: 200 Credit / generate",
-    "• Voice Generator: 200 Credit / generate",
-    "• Voice Cloning: 200 Credit / generate",
+    "GENERATION COST",
+    "AI Image Generator · 100 Credit / gambar",
+    "AI Video Generator · 150 Credit / video",
+    "Music Generator · 200 Credit / generate",
+    "Text to Speech · 200 Credit / generate",
+    "Voice Generator · 200 Credit / generate",
+    "Voice Cloning · 200 Credit / generate",
     "",
-    "🛒 PAKET TOP UP",
-    "• 500 Credit — Rp5.000",
-    "• 2.500 Credit — Rp25.000",
-    "• 5.000 Credit — Rp50.000",
-    "• 10.100 Credit — Rp100.000",
+    "CREDIT PACKAGES",
+    "500 Credit · Rp5.000",
+    "2.500 Credit · Rp25.000",
+    "5.000 Credit · Rp50.000",
+    "10.100 Credit · Rp100.000",
     "",
-    "📲 Paket dan pembayaran QRIS tersedia di website KAZAMA AI:",
+    "Paket dan pembayaran tersedia di website KAZAMA AI.",
     "https://kazamaai.my.id"
   ].join("\n");
 }
