@@ -202,13 +202,19 @@ async function linkTelegramAccount(chatId:number,telegramUserId:number,code:stri
   const {data:native,error:nativeError}=await db.from("telegram_native_accounts").select("user_id").eq("telegram_user_id",telegramUserId).maybeSingle();
   if(nativeError)throw nativeError;
   if(native?.user_id&&native.user_id!==entry.user_id){
-    const {data:profile}=await db.from("profiles").select("balance").eq("id",native.user_id).maybeSingle();
-    const [{count:ledgerCount},{count:jobCount},{count:noticeCount}]=await Promise.all([
+    const [{data:profile},{data:wallet},{count:ledgerCount},{count:jobCount},{count:noticeCount},{count:walletLedgerCount},{count:topupCount},{count:walletTopupCount},{count:holdCount},{count:paymentCount}]=await Promise.all([
+      db.from("profiles").select("balance").eq("id",native.user_id).maybeSingle(),
+      db.from("wallets").select("balance_idr,reserved_idr").eq("user_id",native.user_id).maybeSingle(),
       db.from("token_ledger").select("id",{count:"exact",head:true}).eq("user_id",native.user_id),
       db.from("generation_jobs").select("id",{count:"exact",head:true}).eq("user_id",native.user_id),
-      db.from("notifications").select("id",{count:"exact",head:true}).eq("user_id",native.user_id)
+      db.from("notifications").select("id",{count:"exact",head:true}).eq("user_id",native.user_id),
+      db.from("wallet_ledger").select("id",{count:"exact",head:true}).eq("user_id",native.user_id),
+      db.from("topup_requests").select("id",{count:"exact",head:true}).eq("user_id",native.user_id),
+      db.from("wallet_topups").select("id",{count:"exact",head:true}).eq("user_id",native.user_id),
+      db.from("wallet_holds").select("id",{count:"exact",head:true}).eq("user_id",native.user_id),
+      db.from("casaku_payment_orders").select("id",{count:"exact",head:true}).eq("user_id",native.user_id)
     ]);
-    if(Number(profile?.balance||0)!==0||Number(ledgerCount||0)>0||Number(jobCount||0)>0||Number(noticeCount||0)>0)throw new Error("Akun Telegram memiliki saldo atau riwayat sendiri. Hubungi admin agar kedua akun digabung dengan aman.");
+    if(Number(profile?.balance||0)!==0||Number(wallet?.balance_idr||0)!==0||Number(wallet?.reserved_idr||0)!==0||[ledgerCount,jobCount,noticeCount,walletLedgerCount,topupCount,walletTopupCount,holdCount,paymentCount].some(x=>Number(x||0)>0))throw new Error("Akun Telegram memiliki saldo, pembayaran, atau riwayat sendiri. Hubungi admin agar kedua akun digabung dengan aman.");
     const {error:consolidateError}=await db.from("telegram_native_accounts").update({user_id:entry.user_id}).eq("telegram_user_id",telegramUserId);
     if(consolidateError)throw consolidateError;
   }
