@@ -561,7 +561,14 @@ export async function POST(req: NextRequest) {
     const text = String(message?.text || message?.caption || "").trim();
     if (!chatId) return NextResponse.json({ ok: true });
     if(message.chat?.type==="group"||message.chat?.type==="supergroup") {
-      if(String(message.chat?.title||"").trim().toLowerCase()==="kazama ai info") {
+      const groupTitle=String(message.chat?.title||"").trim().toLowerCase();
+      if(groupTitle==="kazama ai live") {
+        const {error:activityConfigError}=await dbAdmin().from("telegram_bot_config").update({
+          activity_group_chat_id:Number(chatId),activity_group_title:String(message.chat.title),updated_at:new Date().toISOString()
+        }).eq("id",1);
+        if(activityConfigError)throw new Error("Grup LIVE belum bisa disimpan.");
+        await say(Number(chatId),"✅ Grup KAZAMA AI LIVE berhasil dihubungkan. Laporan generate yang berhasil akan tampil di sini tanpa mengirim video.");
+      } else if(groupTitle==="kazama ai info") {
         const {error:configError}=await dbAdmin().from("telegram_bot_config").update({
           required_group_chat_id:Number(chatId),
           required_group_title:String(message.chat.title),
