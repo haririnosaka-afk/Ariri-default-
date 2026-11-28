@@ -37,7 +37,7 @@ async function showVoiceLibrary(chatId:number,telegramUserId:number,origin:strin
 async function seedanceCall(origin:string,telegramUserId:number,body?:any,query="models") {
  const secret=process.env.TELEGRAM_WEBHOOK_SECRET;
  if(!secret)throw new Error("Layanan bot belum dikonfigurasi.");
- const url=origin+"/api/seedance"+(body?"":"?resource="+encodeURIComponent(query));
+ const url=origin+"/api/seedance"+(body?"":"?resource="+query);
  const response=await fetch(url,{method:body?"POST":"GET",headers:{"x-kazama-internal-secret":secret,"x-kazama-telegram-user-id":String(telegramUserId),...(body?{"Content-Type":"application/json"}:{})},...(body?{body:JSON.stringify(body)}:{}),cache:"no-store",signal:AbortSignal.timeout(60000)});
  const data=await response.json().catch(()=>({}));
  if(!response.ok||data.ok===false)throw new Error(data.error||data.detail||"Seedance tidak dapat dihubungi.");
