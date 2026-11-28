@@ -43,8 +43,8 @@ async function announceSuccessfulVideo(user:any,providerJobId:string,providerDat
   const db=adminDb();
   const {data:job,error:jobError}=await db.from("generation_jobs").select("id,user_id,source,model,resolution,duration_seconds,created_at").eq("user_id",user.id).eq("provider_job_id",providerJobId).maybeSingle();
   if(jobError||!job||!String(job.model||"").toLowerCase().includes("omni"))return;
-  const {data:config}=await db.from("telegram_bot_config").select("activity_group_chat_id,required_group_chat_id").eq("id",1).maybeSingle();
-  const groupId=Number(config?.activity_group_chat_id||config?.required_group_chat_id||0);
+  const {data:config}=await db.from("telegram_bot_config").select("activity_group_chat_id").eq("id",1).maybeSingle();
+  const groupId=Number(config?.activity_group_chat_id||0);
   if(!groupId||!process.env.TELEGRAM_BOT_TOKEN)return;
   const [{data:profile},{data:linked},{data:native}]=await Promise.all([
    db.from("profiles").select("display_name").eq("id",user.id).maybeSingle(),
