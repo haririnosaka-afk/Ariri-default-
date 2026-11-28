@@ -93,10 +93,17 @@ async function say(chatId: number, text: string, replyMarkup?: any) {
 }
 async function ensureTelegramAccount(telegramUserId:number, from:any, chatId:number=telegramUserId) {
   const db=dbAdmin();
+  const displayName=[String(from?.first_name||""),String(from?.last_name||"")].filter(Boolean).join(" ").slice(0,120);
   const {data:linked}=await db.from("telegram_account_links").select("user_id").eq("telegram_user_id",telegramUserId).maybeSingle();
-  if(linked?.user_id) return linked.user_id as string;
+  if(linked?.user_id) {
+    if(displayName)await db.from("profiles").update({display_name:displayName}).eq("id",linked.user_id).is("display_name",null);
+    return linked.user_id as string;
+  }
   const {data:existing}=await db.from("telegram_native_accounts").select("user_id").eq("telegram_user_id",telegramUserId).maybeSingle();
-  if(existing?.user_id) return existing.user_id as string;
+  if(existing?.user_id) {
+    if(displayName)await db.from("profiles").update({display_name:displayName}).eq("id",existing.user_id).is("display_name",null);
+    return existing.user_id as string;
+  }
   const email=`tg-${telegramUserId}@telegram.kazamaai.my.id`;
   const password=cryptoRandomPassword();
   let user:any=null;
@@ -145,8 +152,8 @@ Ubah ide menjadi video, gambar, musik, dan suara dalam satu studio.
 Pilih fitur di bawah untuk mulai berkarya.
 
 CREDIT SYSTEM
-Saldo dan riwayat tersinkron dengan website setelah akun ditautkan.
-Ketik /link KODE untuk menautkan akun dari menu Akun di website.`,
+Akun Telegram dan website dapat memakai satu saldo dan riwayat yang sama.
+Login ke website dengan Telegram, atau tautkan akun website melalui /link KODE.`,
     { inline_keyboard: [
       [{ text: "✦ VIDEO GENERATOR", callback_data: "tool_video" }],
       [{ text: "✧ AI IMAGE GENERATOR", callback_data: "tool_image" }],
