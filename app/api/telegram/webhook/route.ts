@@ -338,6 +338,67 @@ export async function POST(req: NextRequest) {
       }
       if(!(await checkRequiredGroup(Number(chatId),Number(callback.from?.id)))) return NextResponse.json({ok:true});
       await ensureTelegramAccount(Number(callback.from?.id),callback.from||{},Number(chatId));
+      if(action.startsWith("imodel:")){
+        const model=action.slice(7);if(!TELEGRAM_IMAGE_MODELS.some(x=>x[0]===model))throw new Error("Image model tidak tersedia.");
+        await saveTelegramFlow(Number(callback.from.id),Number(chatId),"image_setup:"+model);
+        const opts=(model.startsWith("gpt_image")||model.startsWith("mai_image"))?TELEGRAM_IMAGE_OUTPUTS:TELEGRAM_IMAGE_ASPECTS;
+        await say(Number(chatId),"ASPECT RATIO / OUTPUT SIZE\\n\\nPilih pengaturan gambar sesuai model:",{inline_keyboard:opts.map(x=>[{text:x,callback_data:"iaspect:"+x}])});
+        return NextResponse.json({ok:true});
+      }
+      if(action.startsWith("iaspect:")){
+        const aspect=action.slice(8),state=await readTelegramFlow(Number(callback.from.id));
+        if(!state.startsWith("image_setup:"))throw new Error("Sesi Image Generator kedaluwarsa.");
+        const model=state.split(":")[1];
+        if(model==="nano_banana_2"||model==="nano_banana_pro"){
+          await saveTelegramFlow(Number(callback.from.id),Number(chatId),"image_size:"+model+":"+aspect);
+          await say(Number(chatId),"RESOLUTION\\n\\nPilih ukuran output:",{inline_keyboard:TELEGRAM_IMAGE_SIZES.map(x=>[{text:x,callback_data:"isize:"+x}])});
+        }else{
+          await saveTelegramFlow(Number(callback.from.id),Number(chatId),"image_prompt:"+model+":"+aspect+":auto");
+          await say(Number(chatId),"IMAGE PROMPT\\n\\nDescribe the image you want to create...\\n\\nKirim prompt gambar dalam satu pesan.");
+        }
+        return NextResponse.json({ok:true});
+      }
+      if(action.startsWith("isize:")){
+        const size=action.slice(6);if(!TELEGRAM_IMAGE_SIZES.includes(size))throw new Error("Ukuran gambar tidak valid.");
+        const state=await readTelegramFlow(Number(callback.from.id));if(!state.startsWith("image_size:"))throw new Error("Sesi Image Generator kedaluwarsa.");
+        const [,model,aspect]=state.split(":");await saveTelegramFlow(Number(callback.from.id),Number(chatId),"image_prompt:"+model+":"+aspect+":"+size);
+        await say(Number(chatId),"IMAGE PROMPT\\n\\nDescribe the image you want to create...\\n\\nKirim prompt gambar dalam satu pesan.");
+        return NextResponse.json({ok:true});
+      }
+      if(action.startsWith("ttsvoice:")){
+        const voice=action.slice(8);if(!TELEGRAM_VOICES.includes(voice))throw new Error("Voice TTS tidak tersedia.");
+        await saveTelegramFlow(Number(callback.from.id),Number(chatId),"tts_prompt:"+voice);
+        await say(Number(chatId),"TEXT TO SPEAK\\n\\nTulis teks maksimal 5.000 karakter yang ingin diubah menjadi audio.\\nVoice: "+voice+"\\nBiaya: 200 Credit.");
+        return NextResponse.json({ok:true});
+      }
+      if(action.startsWith("voicepick:")){
+        const voiceId=action.slice(10);if(!voiceId||voiceId.length>120)throw new Error("Voice tidak valid.");
+        await saveTelegramFlow(Number(callback.from.id),Number(chatId),"voice_config:"+JSON.stringify({voice_id:voiceId}));
+        await say(Number(chatId),"VOICE GENERATOR · PENGATURAN\\n\\nKirim parameter dalam SATU pesan dengan format:\\nLANGUAGE,SPEED,STABILITY,SIMILARITY,STYLE\\n\\nContoh: id-ID,1,0.5,0.75,0\\n\\nLanguage: id-ID / en-US / en-GB / ja-JP / ko-KR\\nSpeed: 0.5–2 (step 0.1)\\nStability, Similarity Boost, Style: 0–1 (step 0.05)\\nVoice ID: "+voiceId);
+        return NextResponse.json({ok:true});
+      }
+      if(action==="tool_editor"){
+        await say(Number(chatId),"AI IMAGE EDITOR\\n\\nWebsite KAZAMA saat ini hanya menyediakan upload foto, instruksi edit, dan preview lokal. Tombol Generate Edit masih dinonaktifkan karena endpoint gambar belum menerima foto input. Telegram tidak akan mengklaim fitur edit AI sudah aktif.");
+        return NextResponse.json({ok:true});
+      }
+      if(action==="tool_library"){await showVoiceLibrary(Number(chatId),Number(callback.from.id),new URL(req.url).origin);return NextResponse.json({ok:true});}
+      if(action==="tool_clone"){
+        await saveTelegramFlow(Number(callback.from.id),Number(chatId),"clone_name");
+        await say(Number(chatId),"VOICE NAME\\n\\nMasukkan nama voice yang ingin dibuat.");
+        return NextResponse.json({ok:true});
+      }
+      if(action==="clonegender:female"||action==="clonegender:male"){
+        const state=await readTelegramFlow(Number(callback.from.id));if(!state.startsWith("clone_gender:"))throw new Error("Sesi Voice Cloning kedaluwarsa.");
+        const gender=action.slice("clonegender:".length),name=state.slice("clone_gender:".length);
+        await saveTelegramFlow(Number(callback.from.id),Number(chatId),"clone_audio:"+name+":"+gender);
+        await say(Number(chatId),"VOICE CLONING\\nNama: "+decodeURIComponent(name)+"\\nGender: "+gender+"\\nKirim sampel audio 15–60 detik (WAV/MP3 atau voice note).");
+        return NextResponse.json({ok:true});
+      }
+      if(action==="account_credits"){
+        const d=await studioGet(new URL(req.url).origin,Number(callback.from.id),"credit");
+        await say(Number(chatId),"PRICING & CREDITS\\n\\nSaldo tersedia: "+Number(d.credit??d.balance??0).toLocaleString("id-ID")+" Credit\\nImage generation: "+Number(d.image_credit_cost??100)+" Credit / gambar\\nVideo, Music, TTS, Voice, Voice Cloning: 200 Credit per request\\n\\nPaket top up dan pembayaran tersedia di website KAZAMA AI.");
+        return NextResponse.json({ok:true});
+      }
       if(action.startsWith("vmodel:")) {
         const model=action.slice(7);
         if(model!=="omni_flash")throw new Error("Model video tidak tersedia.");
@@ -389,7 +450,7 @@ export async function POST(req: NextRequest) {
       if (action === "account_balance") await sendBalance(chatId, Number(callback.from.id));
       else if (action === "account_history") await sendLatestStatus(chatId,Number(callback.from.id),new URL(req.url).origin);
       else {
-        const promptActions:Record<string,string>={tool_video:"video",tool_image:"image",tool_music:"music",tool_voice:"voice",tool_tts:"tts"};
+        const promptActions:Record<string,string>={tool_video:"video",tool_music:"music"};
         const promptAction=promptActions[action];
         if(promptAction){
           if(promptAction==="video") {
@@ -401,7 +462,7 @@ export async function POST(req: NextRequest) {
             const hints:Record<string,string>={image:"Kirim deskripsi gambar yang ingin kamu buat.",music:"Kirim ide atau deskripsi musik yang ingin kamu buat.",voice:"Kirim teks yang ingin diubah menjadi suara.",tts:"Kirim teks yang ingin dibacakan."};
             await say(chatId,titles[promptAction]+"\\n\\n"+hints[promptAction]+"\\n\\nKetik /menu untuk membatalkan dan kembali ke menu.");
           }
-        } else if(action==="tool_motion"){
+        } else if(action==="tool_image"){await showImageModels(Number(chatId));\n        } else if(action==="tool_tts"){await showTtsVoices(Number(chatId));\n        } else if(action==="tool_voice"){await showVoiceLibrary(Number(chatId),Number(callback.from.id),new URL(req.url).origin);\n        } else if(action==="tool_motion"){
           await say(chatId,"🎭 MOTION CONTROL\n\nKirim satu video sumber dan satu foto identitas sebagai satu album Telegram. Beri caption album: /motion diikuti prompt gerakan yang diinginkan.");
         } else if(action==="tool_clone"){
           await say(chatId,"🎙️ VOICE CLONING\n\nKirim file audio 15–60 detik dengan caption /clone diikuti nama voice.");
