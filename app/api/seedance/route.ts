@@ -98,7 +98,7 @@ export async function GET(req: NextRequest) {
       const video = await providerJson(response);
       const status = String(video.status || "queued").toLowerCase();
       await db.from("generation_jobs").update({ status }).eq("id", row.id).eq("user_id", user.id);
-      if (status === "failed" && row.token_reference && !String(row.token_reference).startsWith("admin-")) {
+      if (status === "failed" && row.status !== "failed" && row.token_reference && !String(row.token_reference).startsWith("admin-")) {
         await db.rpc("refund_token", {
           p_user_id: user.id,
           p_reference_id: row.token_reference,
