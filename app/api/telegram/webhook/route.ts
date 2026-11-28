@@ -126,7 +126,10 @@ async function sendMenu(chatId: number, firstName = "") {
     {command:"video",description:"Buat video AI"},
     {command:"i2v",description:"Buat video dari foto"},
     {command:"motion",description:"Motion Control"},
-    {command:"image",description:"Buat gambar AI"},
+    {command:"image",description:"Free AI Image"},
+    {command:"editor",description:"AI Image Editor"},
+    {command:"library",description:"Voice Library"},
+    {command:"credits",description:"Harga dan saldo Credit"},
     {command:"music",description:"Buat musik AI"},
     {command:"tts",description:"Teks menjadi ucapan"},
     {command:"voice",description:"Voice Generator"},
@@ -235,7 +238,7 @@ async function telegramFileData(fileId:string) {
   if(!file.ok)throw new Error("Gagal mengunduh file dari Telegram.");
   const type=file.headers.get("content-type")||"application/octet-stream";
   const bytes=Buffer.from(await file.arrayBuffer());
-  if(bytes.length>2.8*1024*1024)throw new Error("File terlalu besar. Maksimal 2,8 MB per file agar aman diproses.");
+  if(bytes.length>3*1024*1024)throw new Error("File terlalu besar. Maksimal 3 MB per file agar sesuai batas upload website.");
   return "data:"+type+";base64,"+bytes.toString("base64");
 }
 async function runStudio(chatId:number, telegramUserId:number, origin:string, resource:string, payload:any, label:string) {
@@ -437,7 +440,7 @@ export async function POST(req: NextRequest) {
       if(action.startsWith("vres:")) {
         const resolution=Number(action.slice(5));
         if(![720,1080].includes(resolution))throw new Error("Resolusi video tidak valid.");
-        const {data:session}=await dbAdmin().from("telegram_bot_sessions").select("pending_action").eq("telegram_user_id",Number(callback.from.id)).maybeSingle();
+        const {data:session}=await dbAdmin().from("telegram_video_sessions").select("pending_action").eq("telegram_user_id",Number(callback.from.id)).maybeSingle();
         const pending=String(session?.pending_action||"");
         if(!pending.startsWith("video_resolution:"))throw new Error("Sesi pilihan rasio sudah kedaluwarsa. Mulai lagi dari menu Video Generator.");
         const parts=pending.split(":");
