@@ -259,9 +259,23 @@ async function telegramAccountUserId(telegramUserId:number) {
 async function sendBalance(chatId: number, telegramUserId: number) {
   const db = dbAdmin();
   const userId=await telegramAccountUserId(telegramUserId);
-  const {data:profile,error}=await db.from("profiles").select("email,balance,display_name").eq("id",userId).single();
+  const {data:profile,error}=await db.from("profiles").select("balance").eq("id",userId).single();
   if(error||!profile)throw new Error("Data saldo akun tidak dapat dibaca.");
-  await say(chatId,`👤 AKUN KAZAMA AI\\nNama: ${profile.display_name||"Pengguna Telegram"}\\nTelegram ID: ${telegramUserId}\\nAccount ID: ${userId}\\n\\n💳 SALDO: ${Number(profile.balance)*100} Credit\\n\\nSaldo dan riwayat ini sama saat kamu login ke website dengan Telegram.`);
+  const credit=Number(profile.balance||0)*100;
+  await say(chatId,
+    `✦ KAZAMA AI · AKUN
+━━━━━━━━━━━━━━━━━━
+🤖 BOT
+@KazamaAIBot
+
+🆔 TELEGRAM ID
+${telegramUserId}
+━━━━━━━━━━━━━━━━━━
+💳 SALDO
+${credit.toLocaleString("id-ID")} Credit
+━━━━━━━━━━━━━━━━━━
+Saldo dan riwayat tersinkron dengan website KAZAMA AI.`
+  );
 }
 
 
