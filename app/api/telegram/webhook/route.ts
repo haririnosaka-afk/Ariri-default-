@@ -287,7 +287,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ok:true});
       }
       if(action.startsWith("vmode:")) {
-        const mode=action.slice(5);
+        const mode=action.slice(6);
         if(!["t2v","i2v","r2v"].includes(mode))throw new Error("Mode video tidak valid.");
         await saveVideoSession(Number(callback.from.id),Number(chatId),"video_ratio:"+mode);
         await say(Number(chatId),"📐 PILIH ASPECT RATIO\\n\\nPilih rasio output video:",{inline_keyboard:[
