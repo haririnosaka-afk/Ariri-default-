@@ -333,7 +333,7 @@ async function generatePosbotVideo() {
  const d=await posbotRequest({resource:"generate",model:posbotModelKey,prompt:(posbotSeedance2_15||posbotSeedance2MiniOmni||posbotKling3_10s)?seedancePrompt:prompt,files,aspect_ratio:posbotSupportsAspect?posbotAspectRatio:undefined,negative_prompt:posbotSupportsNegative?(posbotNegativePrompt||undefined):undefined,extra});
  const id=String(d.job_id||d.job_code||"");
  if(!id)throw new Error(d.tracking_warning||"PosBot tidak mengembalikan ID tugas. Periksa saldo provider dan riwayat sebelum mencoba ulang.");
- const job:Job={id,mode:posbotEffectiveMode,prompt:prompt||selectedPosbotVideoModel.name,status:d.status||"queued",created:Date.now(),model:selectedPosbotVideoModel.name,model_key:posbotModelKey,provider:"posbot",token_reference:d.token_reference,aspectRatio:posbotSupportsAspect?(posbotAspectRatio as Job["aspectRatio"]):undefined};
+ const job:Job={id,mode:posbotEffectiveMode,prompt:prompt||selectedPosbotVideoModel.name,status:d.status||"queued",created:Date.now(),model:selectedPosbotVideoModel.name,model_key:posbotModelKey,provider:"nexabot",token_reference:d.token_reference,aspectRatio:posbotSupportsAspect?(posbotAspectRatio as Job["aspectRatio"]):undefined};
  setJobs(p=>[job,...p]);setLastTask(id);setResultKind("video");setResultUrl("");setPosbotImages([]);setPosbotVideo(null);setPosbotAudio(null);setPosbotPromptFile(null);loadCredit();
  flash(d.tracking_warning||"Permintaan diterima PosBot. Progres dan hasil akan muncul di panel Preview & Download.");
 }
