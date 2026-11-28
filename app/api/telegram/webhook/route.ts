@@ -244,7 +244,8 @@ async function telegramFileData(fileId:string) {
 async function runStudio(chatId:number, telegramUserId:number, origin:string, resource:string, payload:any, label:string) {
   await say(chatId,"⏳ "+label+" sedang diproses oleh KAZAMA AI. Mohon tunggu…");
   const result=await studioCall(origin,telegramUserId,{resource,...payload});
-  if(resource==="voice-clone"){const voiceId=String(result.voice?.voice_id||result.voice_id||result.id||"");if(!voiceId)throw new Error("Voice clone diproses tetapi voice_id tidak ditemukan.");await say(chatId,"✅ VOICE CLONING BERHASIL\\nNama: "+String(payload.name||"Custom Voice")+"\\nVoice ID: "+voiceId+"\\n\\nVoice ini sekarang tersedia di Voice Library KAZAMA AI.");return;}\n  if(result.job_id){
+  if(resource==="voice-clone"){const voiceId=String(result.voice?.voice_id||result.voice_id||result.id||"");if(!voiceId)throw new Error("Voice clone diproses tetapi voice_id tidak ditemukan.");await say(chatId,"✅ VOICE CLONING BERHASIL\\nNama: "+String(payload.name||"Custom Voice")+"\\nVoice ID: "+voiceId+"\\n\\nVoice ini sekarang tersedia di Voice Library KAZAMA AI.");return;}
+  if(result.job_id){
     await say(chatId,"✅ Permintaan diterima!\n\nLayanan: "+label+"\nID tugas: "+result.job_id+"\nStatus: "+(result.status||"queued")+"\n\nGunakan /status untuk memeriksa hasil.");
   } else {
     const url=String(result.url||result.audio_url||result.image_url||result.data?.url||"");
