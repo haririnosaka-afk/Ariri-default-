@@ -256,17 +256,23 @@ async function telegramAccountUserId(telegramUserId:number) {
   if(native?.user_id)return String(native.user_id);
   throw new Error("Akun Telegram belum tersedia. Ketik /start untuk membuat akun.");
 }
-async function sendBalance(chatId: number, telegramUserId: number) {
+async function sendBalance(chatId: number, telegramUserId: number, telegramUsername?: string) {
   const db = dbAdmin();
   const userId=await telegramAccountUserId(telegramUserId);
   const {data:profile,error}=await db.from("profiles").select("balance").eq("id",userId).single();
   if(error||!profile)throw new Error("Data saldo akun tidak dapat dibaca.");
   const credit=Number(profile.balance||0)*100;
+  let username=String(telegramUsername||"").replace(/^@/,"").trim();
+  if(!username){
+    const {data:linked}=await db.from("telegram_account_links").select("telegram_username").eq("telegram_user_id",telegramUserId).maybeSingle();
+    const {data:native}=linked?.telegram_username?{data:null}:await db.from("telegram_native_accounts").select("telegram_username").eq("telegram_user_id",telegramUserId).maybeSingle();
+    username=String(linked?.telegram_username||native?.telegram_username||"").replace(/^@/,"").trim();
+  }
   await say(chatId,
     `✦ KAZAMA AI · AKUN
 ━━━━━━━━━━━━━━━━━━
-🤖 BOT
-@KazamaAIBot
+👤 USERNAME TELEGRAM
+${username ? "@"+username : "Belum memiliki username"}
 
 🆔 TELEGRAM ID
 ${telegramUserId}
@@ -526,7 +532,7 @@ export async function POST(req: NextRequest) {
         await say(Number(chatId),"✅ Pengaturan video siap\\nModel: Omni Flash 1.2\\nMode: "+mode.toUpperCase()+"\\nDurasi: "+(mode==="r2v"?"10":"15")+" detik\\nRasio: "+(ratio===1?"Landscape · 16:9":"Portrait · 9:16")+"\\nResolusi: "+resolution+"p\\n\\n"+hint+"\\nKetik /menu untuk membatalkan.");
         return NextResponse.json({ok:true});
       }
-      if (action === "account_balance") await sendBalance(chatId, Number(callback.from.id));
+      if (action === "account_balance") await sendBalance(chatId, Number(callback.from.id), callback.from?.username);
       else if (action === "account_history") await sendLatestStatus(chatId,Number(callback.from.id),new URL(req.url).origin);
       else {
         const promptActions:Record<string,string>={tool_video:"video",tool_music:"music"};
@@ -719,7 +725,7 @@ export async function POST(req: NextRequest) {
     } else if(/^\/clone(?:@KazamaAIBot)?$/i.test(text)){await saveTelegramFlow(Number(message.from?.id),Number(chatId),"clone_name");await say(Number(chatId),"VOICE NAME\\n\\nMasukkan nama voice yang ingin dibuat.");
     } else if (/^\/link(?:@KazamaAIBot)?\s+/i.test(text)) { const code=text.replace(/^\/link(?:@KazamaAIBot)?\s+/i,"").trim(); await linkTelegramAccount(Number(chatId),Number(message.from?.id),code,message.from?.username); }
     else if (text === "/saldo" || text.startsWith("/saldo ")) {
-      await sendBalance(chatId, Number(message.from?.id));
+      await sendBalance(chatId, Number(message.from?.id), message.from?.username);
     } else if (/^\/(video|image|music|tts|voice|clone|motion|i2v)(?:@KazamaAIBot)?(?:\s|$)/i.test(text)) {
       const match=text.match(/^\/(video|image|music|tts|voice|clone|motion|i2v)(?:@KazamaAIBot)?(?:\s+([\s\S]*))?$/i)!;
       await handleGeneration(chatId,Number(message.from?.id),new URL(req.url).origin,match[1].toLowerCase(),match[2]||message.caption||"",message);
