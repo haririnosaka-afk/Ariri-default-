@@ -279,6 +279,7 @@ export async function POST(req: NextRequest) {
       await telegram("answerCallbackQuery", { callback_query_id: callback.id });
       const chatId = callback.message?.chat?.id;
       if (!chatId) return NextResponse.json({ ok: true });
+      errorChatId = Number(chatId);
       const action = String(callback.data || "");
       if(action==="check_join") {
         if(await checkRequiredGroup(Number(chatId),Number(callback.from?.id))) {
