@@ -15,10 +15,11 @@ async function saveVideoSession(telegramUserId:number,chatId:number,pendingActio
 async function generateTelegramVideo(chatId:number,telegramUserId:number,origin:string,model:string,mode:string,prompt:string,ratio:number,resolution:number,media?:string[]) {
   if(!prompt.trim()) throw new Error("Prompt video tidak boleh kosong.");
   if(model!=="omni_flash") throw new Error("Model video tidak tersedia di NexaBot.");
-  if(!["t2v","i2v","r2v"].includes(mode)) throw new Error("Mode video tidak tersedia.");
-  if(mode==="i2v"&&(!media||media.length<1))throw new Error("Mode Image to Video membutuhkan foto referensi.");
+  if(!["t2v","sfv","i2v","r2v"].includes(mode)) throw new Error("Mode video tidak tersedia.");
+  if(mode==="i2v"&&(!media||media.length<1||media.length>3))throw new Error("Mode Image to Video menerima 1–3 foto referensi.");
+  if(mode==="sfv"&&(!media||media.length!==1))throw new Error("Mode Start Frame Video membutuhkan tepat 1 foto pembuka.");
   if(mode==="r2v"&&(!media||media.length<1))throw new Error("Mode Video to Video membutuhkan video referensi.");
-  const modeLabel=mode==="t2v"?"Text to Video":mode==="i2v"?"Image to Video":"Video to Video";
+  const modeLabel=mode==="t2v"?"Text to Video":mode==="sfv"?"Start Frame Video":mode==="i2v"?"Image to Video":"Video to Video";
   await say(chatId,"⏳ Video Omni Flash 1.2 ("+modeLabel+") sedang diproses oleh KAZAMA AI. Mohon tunggu…");
   const result=await studioCall(origin,telegramUserId,{resource:"generate",model:"omni_flash",mode,prompt,ratio,resolution,duration:15,...(media?.length?{media}:{})});
   await say(chatId,"✅ Permintaan video diterima!\\n\\nModel: "+(result.model_label||"Omni Flash 1.2")+"\\nMode: "+modeLabel+"\\nDurasi: 15 detik\\nRasio: "+(ratio===1?"Landscape · 16:9":"Portrait · 9:16")+"\\nResolusi: "+resolution+"p\\nID tugas: "+(result.job_id||"-")+"\\nStatus: "+(result.status||"queued")+"\\n\\nKetik /status untuk memeriksa hasil.");
@@ -301,6 +302,7 @@ export async function POST(req: NextRequest) {
         if(model!=="omni_flash")throw new Error("Model video tidak tersedia.");
         await say(Number(chatId),"⚙️ PILIH MODE VIDEO\\n\\nSamakan dengan pilihan di web KAZAMA:",{inline_keyboard:[
           [{text:"Text to Video · T2V",callback_data:"vmode:t2v"}],
+          [{text:"Start Frame Video · SFV",callback_data:"vmode:sfv"}],
           [{text:"Image to Video · I2V",callback_data:"vmode:i2v"}],
           [{text:"Video to Video · R2V",callback_data:"vmode:r2v"}]
         ]});
@@ -308,7 +310,7 @@ export async function POST(req: NextRequest) {
       }
       if(action.startsWith("vmode:")) {
         const mode=action.slice(6);
-        if(!["t2v","i2v","r2v"].includes(mode))throw new Error("Mode video tidak valid.");
+        if(!["t2v","sfv","i2v","r2v"].includes(mode))throw new Error("Mode video tidak valid.");
         await saveVideoSession(Number(callback.from.id),Number(chatId),"video_ratio:"+mode);
         await say(Number(chatId),"📐 PILIH ASPECT RATIO\\n\\nPilih rasio output video:",{inline_keyboard:[
           [{text:"Landscape · 16:9",callback_data:"vratio:1"}],
@@ -339,7 +341,7 @@ export async function POST(req: NextRequest) {
         const parts=pending.split(":");
         const mode=parts[1],ratio=Number(parts[2]);
         await saveVideoSession(Number(callback.from.id),Number(chatId),"video_prompt:"+mode+":"+ratio+":"+resolution);
-        const hint=mode==="t2v"?"Sekarang kirim prompt teks video.":mode==="i2v"?"Sekarang kirim 1–3 foto referensi sekaligus dalam satu album, lalu tulis prompt video pada caption foto pertama.":"Sekarang kirim satu video referensi dengan caption berisi prompt video."
+        const hint=mode==="t2v"?"Sekarang kirim prompt teks video.":mode==="sfv"?"Sekarang kirim tepat satu foto sebagai frame pembuka, dengan prompt pada caption.":mode==="i2v"?"Sekarang kirim 1–3 foto referensi sekaligus dalam satu album, lalu tulis prompt video pada caption foto pertama.":"Sekarang kirim satu video referensi dengan caption berisi prompt video."
         await say(Number(chatId),"✅ Pengaturan video siap\\nModel: Omni Flash 1.2\\nMode: "+mode.toUpperCase()+"\\nDurasi: 15 detik (tetap)\\nRasio: "+(ratio===1?"Landscape · 16:9":"Portrait · 9:16")+"\\nResolusi: "+resolution+"p\\n\\n"+hint+"\\nKetik /menu untuk membatalkan.");
         return NextResponse.json({ok:true});
       }
@@ -453,10 +455,10 @@ export async function POST(req: NextRequest) {
         const [,mode,ratioText,resolutionText]=pendingAction.split(":");
         const caption=String(message.caption||"").trim();
         if(!caption)throw new Error("Tambahkan prompt pada caption foto/video yang dikirim.");
-        if(mode==="i2v"&&!message.photo?.length)throw new Error("Mode I2V membutuhkan foto, bukan video.");
+        if((mode==="i2v"||mode==="sfv")&&!message.photo?.length)throw new Error("Mode "+mode.toUpperCase()+" membutuhkan foto, bukan video.");
         if(mode==="r2v"&&!message.video)throw new Error("Mode R2V membutuhkan video referensi, bukan foto.");
         if(mode==="t2v")throw new Error("Mode T2V menggunakan prompt teks tanpa media.");
-        const fileId=mode==="i2v"?message.photo[message.photo.length-1].file_id:message.video.file_id;
+        const fileId=(mode==="i2v"||mode==="sfv")?message.photo[message.photo.length-1].file_id:message.video.file_id;
         const media=[await telegramFileData(fileId)];
         await dbAdmin().from("telegram_video_sessions").delete().eq("telegram_user_id",Number(message.from?.id));
         await generateTelegramVideo(Number(chatId),Number(message.from?.id),new URL(req.url).origin,"omni_flash",mode,caption,Number(ratioText),Number(resolutionText),media);
