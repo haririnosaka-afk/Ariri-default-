@@ -97,6 +97,7 @@ export async function POST(req: NextRequest) {
       if (saveError) throw saveError;
     }
 
+    await db.from("profiles").update({ display_name: displayName }).eq("id", userId).is("display_name", null);
     const { data: authResult, error: authError } = await db.auth.admin.getUserById(userId);
     if (authError || !authResult.user?.email) throw new Error("Identitas akun KAZAMA tidak ditemukan.");
     const { data: link, error: generateError } = await db.auth.admin.generateLink({
