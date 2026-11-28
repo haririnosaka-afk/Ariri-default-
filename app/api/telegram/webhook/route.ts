@@ -453,14 +453,10 @@ export async function POST(req: NextRequest) {
         const promptActions:Record<string,string>={tool_video:"video",tool_music:"music"};
         const promptAction=promptActions[action];
         if(promptAction){
-          if(promptAction==="video") {
-            await showVideoModels(Number(chatId),Number(callback.from.id),new URL(req.url).origin);
-          } else {
-            const {error:sessionError}=await dbAdmin().from("telegram_bot_sessions").upsert({telegram_user_id:Number(callback.from.id),telegram_chat_id:Number(chatId),pending_action:promptAction,created_at:new Date().toISOString()},{onConflict:"telegram_user_id"});
-            if(sessionError)throw new Error("Sesi generator tidak dapat dimulai. Coba pilih menu lagi.");
-            const titles:Record<string,string>={image:"🖼️ IMAGE GENERATOR",music:"🎵 MUSIC GENERATOR",voice:"🎙️ VOICE STUDIO",tts:"🗣️ TEXT TO SPEECH"};
-            const hints:Record<string,string>={image:"Kirim deskripsi gambar yang ingin kamu buat.",music:"Kirim ide atau deskripsi musik yang ingin kamu buat.",voice:"Kirim teks yang ingin diubah menjadi suara.",tts:"Kirim teks yang ingin dibacakan."};
-            await say(chatId,titles[promptAction]+"\\n\\n"+hints[promptAction]+"\\n\\nKetik /menu untuk membatalkan dan kembali ke menu.");
+          if(promptAction==="video") await showVideoModels(Number(chatId),Number(callback.from.id),new URL(req.url).origin);
+          else {
+            await saveTelegramFlow(Number(callback.from.id),Number(chatId),"music_prompt");
+            await say(Number(chatId),"MUSIC GENERATOR\\n\\nMUSIC DESCRIPTION\\nGenre, mood, instruments, tempo, atmosphere, and structure...\\n\\nKirim deskripsi musik. Biaya: 200 Credit.");
           }
         } else if(action==="tool_image"){await showImageModels(Number(chatId));\n        } else if(action==="tool_tts"){await showTtsVoices(Number(chatId));\n        } else if(action==="tool_voice"){await showVoiceLibrary(Number(chatId),Number(callback.from.id),new URL(req.url).origin);\n        } else if(action==="tool_motion"){
           await say(chatId,"🎭 MOTION CONTROL\n\nKirim satu video sumber dan satu foto identitas sebagai satu album Telegram. Beri caption album: /motion diikuti prompt gerakan yang diinginkan.");
