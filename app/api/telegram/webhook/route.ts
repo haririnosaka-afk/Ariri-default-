@@ -1,3 +1,19 @@
+async function showVideoModels(chatId:number,telegramUserId:number,origin:string) {
+  // NexaBot currently exposes Omni Flash 1.2 as its video model.
+  // Use the same NexaBot-backed Studio API as the KAZAMA website.
+  await say(chatId,"🎬 PILIH MODEL VIDEO\\n\\nPilih model video yang ingin kamu gunakan:",{
+    inline_keyboard:[[
+      {text:"Omni Flash 1.2 · 15 detik · 150 Credit",callback_data:"vmodel:omni_flash"}
+    ]]
+  });
+}
+async function generateTelegramVideo(chatId:number,telegramUserId:number,origin:string,model:string,prompt:string) {
+  if(!prompt.trim()) throw new Error("Prompt video tidak boleh kosong.");
+  if(model!=="omni_flash") throw new Error("Model video tidak tersedia di NexaBot.");
+  await say(chatId,"⏳ Video Omni Flash 1.2 sedang diproses oleh KAZAMA AI. Mohon tunggu…");
+  const result=await studioCall(origin,telegramUserId,{resource:"generate",model:"omni_flash",mode:"t2v",prompt,ratio:1,resolution:1080,duration:15});
+  await say(chatId,"✅ Permintaan video diterima!\\n\\nModel: "+(result.model_label||"Omni Flash 1.2")+"\\nDurasi: 15 detik\\nID tugas: "+(result.job_id||"-")+"\\nStatus: "+(result.status||"queued")+"\\n\\nKetik /status untuk memeriksa hasil.");
+}
 import { NextRequest, NextResponse } from "next/server";
 import { createHash, randomBytes } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
@@ -153,45 +169,6 @@ async function telegramFileData(fileId:string) {
   const bytes=Buffer.from(await file.arrayBuffer());
   if(bytes.length>2.8*1024*1024)throw new Error("File terlalu besar. Maksimal 2,8 MB per file agar aman diproses.");
   return "data:"+type+";base64,"+bytes.toString("base64");
-}
-async function posbotCall(origin:string,telegramUserId:number,body:any) {
-  const secret=process.env.TELEGRAM_WEBHOOK_SECRET;
-  if(!secret) throw new Error("Layanan bot belum dikonfigurasi.");
-  const response=await fetch(origin+"/api/posbot",{
-    method:"POST",
-    headers:{"Content-Type":"application/json","x-kazama-internal-secret":secret,"x-kazama-telegram-user-id":String(telegramUserId)},
-    body:JSON.stringify(body),cache:"no-store",signal:AbortSignal.timeout(280000)
-  });
-  const data=await response.json().catch(()=>({ok:false,error:"Respons KAZAMA tidak valid."}));
-  if(!response.ok||data.ok===false)throw new Error(String(data.error||"Generator gagal memproses permintaan."));
-  return data;
-}
-async function showVideoModels(chatId:number,telegramUserId:number,origin:string) {
-  const response=await fetch(origin+"/api/posbot?resource=video-models",{
-    headers:{"x-kazama-internal-secret":process.env.TELEGRAM_WEBHOOK_SECRET||"","x-kazama-telegram-user-id":String(telegramUserId)},
-    cache:"no-store",signal:AbortSignal.timeout(30000)
-  });
-  const data=await response.json().catch(()=>({}));
-  if(!response.ok||data.ok===false)throw new Error(data.error||"Katalog model video belum tersedia.");
-  const models=(Array.isArray(data.models)?data.models:[]).filter((m:any)=>{
-    const name=String(m.name||m.title||m.model_key||"");
-    return m.model_key && !/seedance/i.test(name+" "+m.model_key);
-  });
-  if(!models.length)throw new Error("Belum ada model video yang tersedia.");
-  const rows=models.slice(0,40).map((m:any)=>{
-    const name=String(m.name||m.title||m.model_key).replace(/nexa\s*bot|pos\s*bot/ig,"").trim();
-    const duration=Number(m.duration_seconds??m.duration??(/15s/i.test(name+" "+m.model_key)?15:0));
-    const credits=Number(m.customer_credits??(Number(m.customer_tokens||0)*200));
-    const label=(name+(duration>0?" · "+duration+" detik":"")+" · "+(credits>0?credits:"-")+" Credit").slice(0,60);
-    return [{text:label,callback_data:"vmodel:"+String(m.model_key).slice(0,48)}];
-  });
-  await say(chatId,"🎬 PILIH MODEL VIDEO\n\nPilih model yang ingin kamu gunakan. Harga Credit ditampilkan di setiap pilihan.",{inline_keyboard:rows});
-}
-async function generateTelegramVideo(chatId:number,telegramUserId:number,origin:string,model:string,prompt:string) {
-  if(!prompt.trim()) throw new Error("Prompt video tidak boleh kosong.");
-  await say(chatId,"⏳ Video sedang diproses dengan model pilihanmu. Mohon tunggu…");
-  const result=await posbotCall(origin,telegramUserId,{resource:"generate",model,prompt});
-  await say(chatId,"✅ Permintaan video diterima!\n\nModel: "+(result.model||model)+"\nBiaya: "+(result.customer_tokens??"-")+" Credit\nID tugas: "+result.job_id+"\nStatus: "+(result.status||"queued")+"\n\nKirim /status untuk memeriksa hasil.");
 }
 async function runStudio(chatId:number, telegramUserId:number, origin:string, resource:string, payload:any, label:string) {
   await say(chatId,"⏳ "+label+" sedang diproses oleh KAZAMA AI. Mohon tunggu…");
