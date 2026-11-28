@@ -22,7 +22,7 @@ async function generateTelegramVideo(chatId:number,telegramUserId:number,origin:
   const modeLabel=mode==="t2v"?"Text to Video":mode==="sfv"?"Start Frame Video":mode==="i2v"?"Image to Video":"Video to Video";
   await say(chatId,"⏳ Video Omni Flash 1.2 ("+modeLabel+") sedang diproses oleh KAZAMA AI. Mohon tunggu…");
   const result=await studioCall(origin,telegramUserId,{resource:"generate",model:"omni_flash",mode,prompt,ratio,resolution,duration:15,...(media?.length?{media}:{})});
-  await say(chatId,"✅ Permintaan video diterima!\\n\\nModel: "+(result.model_label||"Omni Flash 1.2")+"\\nMode: "+modeLabel+"\\nDurasi: 15 detik\\nRasio: "+(ratio===1?"Landscape · 16:9":"Portrait · 9:16")+"\\nResolusi: "+resolution+"p\\nID tugas: "+(result.job_id||"-")+"\\nStatus: "+(result.status||"queued")+"\\n\\nKetik /status untuk memeriksa hasil.");
+  await say(chatId,"✅ Permintaan video diterima!\\n\\nModel: "+(result.model_label||"Omni Flash 1.2")+"\\nMode: "+modeLabel+"\\nDurasi: "+(mode==="r2v"?"10":"15")+" detik\\nRasio: "+(ratio===1?"Landscape · 16:9":"Portrait · 9:16")+"\\nResolusi: "+resolution+"p\\nID tugas: "+(result.job_id||"-")+"\\nStatus: "+(result.status||"queued")+"\\n\\nKetik /status untuk memeriksa hasil.");
 }
 import { NextRequest, NextResponse } from "next/server";
 import { createHash, randomBytes } from "node:crypto";
