@@ -11,8 +11,8 @@ async function currentUser(req?:NextRequest){
   const telegramId=Number(req?.headers.get("x-kazama-telegram-user-id")||0);
   if(!Number.isSafeInteger(telegramId)||telegramId<=0)throw Object.assign(new Error("Identitas Telegram tidak valid."),{status:401});
   const db=adminDb();
-  const {data:link,error}=await db.from("telegram_native_accounts").select("user_id").eq("telegram_user_id",telegramId).single();
-  if(error||!link)throw Object.assign(new Error("Akun Telegram belum dibuat. Ketik /start pada bot."),{status:401});
+  const {data:link,error}=await db.from("telegram_account_links").select("user_id").eq("telegram_user_id",telegramId).single();
+  if(error||!link)throw Object.assign(new Error("Akun belum ditautkan. Login ke website KAZAMA AI, buat kode tautan dari menu Akun, lalu kirim /link KODE ke bot."),{status:401});
   const {data:profile,error:profileError}=await db.from("profiles").select("id,email").eq("id",link.user_id).single();
   if(profileError||!profile)throw Object.assign(new Error("Profil KAZAMA tidak ditemukan."),{status:401});
   return {id:profile.id,email:profile.email};
