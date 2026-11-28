@@ -399,7 +399,7 @@ export async function POST(req: NextRequest) {
       }
       if(action==="account_credits"){
         const d=await studioGet(new URL(req.url).origin,Number(callback.from.id),"credit");
-        await say(Number(chatId),"PRICING & CREDITS\\n\\nSaldo tersedia: "+Number(d.credit??d.balance??0).toLocaleString("id-ID")+" Credit\\nImage generation: "+Number(d.image_credit_cost??100)+" Credit / gambar\\nVideo, Music, TTS, Voice, Voice Cloning: 200 Credit per request\\n\\nPaket top up dan pembayaran tersedia di website KAZAMA AI.");
+        await say(Number(chatId),"PRICING & CREDITS\\n\\nSaldo tersedia: "+Number(d.credit??d.balance??0).toLocaleString("id-ID")+" Credit\\nFree AI Image: "+Number(d.image_credit_cost??100)+" Credit / gambar\\nVideo Generator: "+Number(d.video_credit_cost??100)+" Credit / video\\nMusic Generator: 200 Credit / generate\\nText to Speech: 200 Credit / generate\\nVoice Generator: "+Number(d.voice_credit_cost??200)+" Credit / generate\\nVoice Cloning: "+Number(d.clone_credit_cost??200)+" Credit / generate\\n\\nPAKET TOP UP\\n500 Credit · Rp5.000\\n2.500 Credit · Rp25.000\\n5.000 Credit · Rp50.000\\n10.100 Credit · Rp100.000\\n\\nPaket dan pembayaran QRIS tersedia di website KAZAMA AI.");
         return NextResponse.json({ok:true});
       }
       if(action.startsWith("vmodel:")) {
