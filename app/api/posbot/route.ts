@@ -75,10 +75,10 @@ function isImageModel(model: any) {
   return category.includes("image") || /^(krea|nano_banana|gpt_image|flux|seedream|face_swap|upscale_4k)/.test(key);
 }
 const FIXED_CUSTOMER_PRICES_IDR: Record<string, number> = {
-  // Omni Flash 1.2 · fixed KAZAMA customer price: 150 Credit (Rp1,500).
-  omni_flash_12: 1500,
-  omni_12: 1500,
-  omni_flash_12_1080p: 1500,
+  // Omni Flash 1.2 · fixed KAZAMA customer price: 100 Credit (Rp1,000).
+  omni_flash_12: 1000,
+  omni_12: 1000,
+  omni_flash_12_1080p: 1000,
   wan_remix: 5000,
   betamotion_1080p_pro: 6000,
   seedance_2_15s: 4000,
@@ -128,9 +128,6 @@ function dbJobStatus(value: any) {
 function visibleModel(model: any) {
   const key = modelKey(model);
   if (!key) return false;
-  // Models with an explicit KAZAMA fixed selling price remain visible even when
-  // the provider catalog omits its raw cost field (notably Omni Flash).
-  if (fixedCustomerPrice(model) !== null) return true;
   // Seedance 2 Mini Omni memakai harga jual tetap KAZAMA; beberapa katalog provider
   // tidak mengirim field harga untuk model ini, jadi jangan sembunyikan model tersebut.
   if (["seedance_20_mini", "seedance_2_mini_omni_15s", "kling_30_turbo", "kling4_720p_20s", "kling_4_20s"].includes(key.toLowerCase()) || /seedance.*2.*mini.*omni|kling.*4.*20s/i.test(String(model?.name||model?.title||""))) return true;
