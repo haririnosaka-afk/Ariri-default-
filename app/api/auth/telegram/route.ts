@@ -14,10 +14,11 @@ function adminDb() {
 
 function verifyTelegramPayload(input: any, botToken: string) {
   if (!input || typeof input !== "object" || Array.isArray(input)) return false;
-  const allowed = ["id", "first_name", "last_name", "username", "photo_url", "auth_date"];
   const fields: Record<string, string> = {};
-  for (const key of allowed) {
-    if (input[key] !== undefined && input[key] !== null) fields[key] = String(input[key]);
+  for (const [key, value] of Object.entries(input)) {
+    if (key === "hash") continue;
+    if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") return false;
+    fields[key] = String(value);
   }
   if (!/^\d+$/.test(fields.id || "") || !/^\d+$/.test(fields.auth_date || "")) return false;
   if (typeof input.hash !== "string" || !/^[a-f0-9]{64}$/i.test(input.hash)) return false;
