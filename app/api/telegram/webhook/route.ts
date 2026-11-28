@@ -189,6 +189,22 @@ async function linkTelegramAccount(chatId:number,telegramUserId:number,code:stri
   const db=dbAdmin();
   const {data:entry,error}=await db.from("telegram_link_codes").select("user_id,expires_at").eq("code_hash",hash).gt("expires_at",new Date().toISOString()).maybeSingle();
   if(error||!entry)throw new Error("Kode tautan salah atau kedaluwarsa. Buat kode baru dari menu Akun website.");
+  const {data:existingLink,error:existingLinkError}=await db.from("telegram_account_links").select("user_id").eq("telegram_user_id",telegramUserId).maybeSingle();
+  if(existingLinkError)throw existingLinkError;
+  if(existingLink?.user_id&&existingLink.user_id!==entry.user_id)throw new Error("Telegram ini sudah terhubung ke akun KAZAMA lain. Demi keamanan saldo dan riwayat, hubungi admin untuk pemindahan akun.");
+  const {data:native,error:nativeError}=await db.from("telegram_native_accounts").select("user_id").eq("telegram_user_id",telegramUserId).maybeSingle();
+  if(nativeError)throw nativeError;
+  if(native?.user_id&&native.user_id!==entry.user_id){
+    const {data:profile}=await db.from("profiles").select("balance").eq("id",native.user_id).maybeSingle();
+    const [{count:ledgerCount},{count:jobCount},{count:noticeCount}]=await Promise.all([
+      db.from("token_ledger").select("id",{count:"exact",head:true}).eq("user_id",native.user_id),
+      db.from("generation_jobs").select("id",{count:"exact",head:true}).eq("user_id",native.user_id),
+      db.from("notifications").select("id",{count:"exact",head:true}).eq("user_id",native.user_id)
+    ]);
+    if(Number(profile?.balance||0)!==0||Number(ledgerCount||0)>0||Number(jobCount||0)>0||Number(noticeCount||0)>0)throw new Error("Akun Telegram memiliki saldo atau riwayat sendiri. Hubungi admin agar kedua akun digabung dengan aman.");
+    const {error:consolidateError}=await db.from("telegram_native_accounts").update({user_id:entry.user_id}).eq("telegram_user_id",telegramUserId);
+    if(consolidateError)throw consolidateError;
+  }
   const {error:linkError}=await db.from("telegram_account_links").upsert({
     telegram_user_id:telegramUserId,user_id:entry.user_id,telegram_chat_id:chatId,
     telegram_username:username||null,linked_at:new Date().toISOString()
@@ -217,13 +233,22 @@ function formatCreditPricing(credit:number) {
   ].join("\n");
 }
 
+async function telegramAccountUserId(telegramUserId:number) {
+  const db=dbAdmin();
+  const {data:linked,error:linkError}=await db.from("telegram_account_links").select("user_id").eq("telegram_user_id",telegramUserId).maybeSingle();
+  if(linkError)throw linkError;
+  if(linked?.user_id)return String(linked.user_id);
+  const {data:native,error:nativeError}=await db.from("telegram_native_accounts").select("user_id").eq("telegram_user_id",telegramUserId).maybeSingle();
+  if(nativeError)throw nativeError;
+  if(native?.user_id)return String(native.user_id);
+  throw new Error("Akun Telegram belum tersedia. Ketik /start untuk membuat akun.");
+}
 async function sendBalance(chatId: number, telegramUserId: number) {
   const db = dbAdmin();
-  const {data:account,error:accountError}=await db.from("telegram_account_links").select("user_id").eq("telegram_user_id",telegramUserId).single();
-  if(accountError||!account)throw new Error("Akun belum ditautkan. Login ke website KAZAMA AI, buat kode tautan dari menu Akun, lalu kirim /link KODE ke bot.");
-  const {data:profile,error}=await db.from("profiles").select("email,balance").eq("id",account.user_id).single();
+  const userId=await telegramAccountUserId(telegramUserId);
+  const {data:profile,error}=await db.from("profiles").select("email,balance,display_name").eq("id",userId).single();
   if(error||!profile)throw new Error("Data saldo akun tidak dapat dibaca.");
-  await say(chatId,`💳 KAZAMA AI WALLET\nSaldo: ${Number(profile.balance)*100} Credit\n\nSaldo ini tersinkron dengan akun website KAZAMA AI.`);
+  await say(chatId,`👤 AKUN KAZAMA AI\\nNama: ${profile.display_name||"Pengguna Telegram"}\\nTelegram ID: ${telegramUserId}\\nAccount ID: ${userId}\\n\\n💳 SALDO: ${Number(profile.balance)*100} Credit\\n\\nSaldo dan riwayat ini sama saat kamu login ke website dengan Telegram.`);
 }
 
 
@@ -280,9 +305,8 @@ async function runStudio(chatId:number, telegramUserId:number, origin:string, re
 }
 async function sendLatestStatus(chatId:number, telegramUserId:number, origin:string) {
   const db=dbAdmin();
-  const {data:link,error:linkError}=await db.from("telegram_account_links").select("user_id").eq("telegram_user_id",telegramUserId).single();
-  if(linkError||!link)throw new Error("Ketik /start untuk membuat akun Telegram.");
-  const {data:jobs,error}=await db.from("generation_jobs").select("provider_job_id,model,prompt,status,created_at").eq("user_id",link.user_id).order("created_at",{ascending:false}).limit(5);
+  const userId=await telegramAccountUserId(telegramUserId);
+  const {data:jobs,error}=await db.from("generation_jobs").select("provider_job_id,model,prompt,status,created_at").eq("user_id",userId).order("created_at",{ascending:false}).limit(5);
   if(error||!jobs?.length){await say(chatId,"Belum ada tugas generator di riwayat akunmu.");return;}
   const latest=jobs[0];
   if(latest?.provider_job_id){
@@ -326,8 +350,7 @@ async function handleGeneration(chatId:number, telegramUserId:number, origin:str
   if(command==="music") return runStudio(chatId,telegramUserId,origin,"generate",{mode:"music",prompt},"Music Generator");
   if(command==="tts") return runStudio(chatId,telegramUserId,origin,"generate",{mode:"tts",prompt,voice:"Achernar"},"Text to Speech");
   if(command==="voice") {
-    const {data:voices}=await dbAdmin().from("telegram_account_links").select("user_id").eq("telegram_user_id",telegramUserId).single();
-    if(!voices)throw new Error("Ketik /start untuk membuat akun Telegram.");
+    await telegramAccountUserId(telegramUserId);
     const catalog=await fetch(origin+"/api/studio?resource=voices",{headers:{"x-kazama-internal-secret":process.env.TELEGRAM_WEBHOOK_SECRET!,"x-kazama-telegram-user-id":String(telegramUserId)},cache:"no-store"});
     const voiceData=await catalog.json().catch(()=>({}));
     const first=(voiceData.voices||voiceData.data?.voices||[])[0];
