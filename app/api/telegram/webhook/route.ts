@@ -1,7 +1,7 @@
 async function showVideoModels(chatId:number,telegramUserId:number,origin:string) {
   await say(chatId,"🎬 PILIH MODEL VIDEO\\n\\nPilih model video yang ingin kamu gunakan:",{
     inline_keyboard:[[
-      {text:"Omni Flash 1.2 · 15 detik · 150 Credit",callback_data:"vmodel:omni_flash"}
+      {text:"Omni Flash 1.2 · Video Generator",callback_data:"vmodel:omni_flash"}
     ]]
   });
 }
@@ -342,7 +342,7 @@ export async function POST(req: NextRequest) {
         const mode=parts[1],ratio=Number(parts[2]);
         await saveVideoSession(Number(callback.from.id),Number(chatId),"video_prompt:"+mode+":"+ratio+":"+resolution);
         const hint=mode==="t2v"?"Sekarang kirim prompt teks video.":mode==="sfv"?"Sekarang kirim tepat satu foto sebagai frame pembuka, dengan prompt pada caption.":mode==="i2v"?"Sekarang kirim 1–3 foto referensi sekaligus dalam satu album, lalu tulis prompt video pada caption foto pertama.":"Sekarang kirim satu video referensi dengan caption berisi prompt video."
-        await say(Number(chatId),"✅ Pengaturan video siap\\nModel: Omni Flash 1.2\\nMode: "+mode.toUpperCase()+"\\nDurasi: 15 detik (tetap)\\nRasio: "+(ratio===1?"Landscape · 16:9":"Portrait · 9:16")+"\\nResolusi: "+resolution+"p\\n\\n"+hint+"\\nKetik /menu untuk membatalkan.");
+        await say(Number(chatId),"✅ Pengaturan video siap\\nModel: Omni Flash 1.2\\nMode: "+mode.toUpperCase()+"\\nDurasi: "+(mode==="r2v"?"10":"15")+" detik\\nRasio: "+(ratio===1?"Landscape · 16:9":"Portrait · 9:16")+"\\nResolusi: "+resolution+"p\\n\\n"+hint+"\\nKetik /menu untuk membatalkan.");
         return NextResponse.json({ok:true});
       }
       if (action === "account_balance") await sendBalance(chatId, Number(callback.from.id));
